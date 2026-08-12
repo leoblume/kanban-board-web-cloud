@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprovados / Aguardando</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Ajuste da grade para apenas 4 colunas principais */
+        .kanban-header, .kanban-row {
+            grid-template-columns: 40px 3fr 1.5fr 100px !important;
+        }
+        body { padding-bottom: 20px; } /* Sem painel semanal aqui */
+
+
+        <style>
+    /* Trava o layout para não quebrar a linha */
+    .kanban-table {
+        min-width: 1100px; /* Garante espaço para todas as colunas lado a lado */
+        overflow-x: auto;
+    }
+
+    .kanban-header, .kanban-row {
+        display: grid !important;
+        /* Handle (40px) | Info (250px) | Data (100px) | Obs (Flexível) | Ações (60px) */
+        grid-template-columns: 40px 250px 100px 1fr 60px !important;
+        gap: 15px;
+        align-items: center;
+        padding: 8px 15px;
+    }
+
+    /* Estilo do input de Observação para ser maior e visível */
+    .obs-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        font-size: 13px;
+        background-color: #ffffff;
+        transition: border-color 0.2s;
+    }
+
+    .obs-input:focus {
+        border-color: #6610f2;
+        outline: none;
+        background-color: #f8f9fa;
+    }
+</style>
+        
+    </style>
+</head>
+<body>
+    <div class="kanban-board">
+        <div class="board-title-header">
+            <h1>Painel APROVADOS / AGUARDANDO</h1>
+            <a href="extrator_aprovados.html" class="import-button"><span>Importar PDF</span></a>
+            <button id="add-row-button" class="add-row-button"><span>Adicionar</span></button>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Pesquisar...">
+                <span id="search-counter"></span>
+            </div>
+        </div>
+        <div class="kanban-table">
+            <header class="kanban-header">
+            <div class="header-cell"></div>
+            <div class="header-cell">Cliente / OS</div>
+            <div class="header-cell">Entrega</div>
+            <div class="header-cell">Observação</div> <!-- NOVO -->
+            <div class="header-cell">Ações</div>
+                
+            </header>
+
+            <main id="kanban-body"></main>
+        </div>
+    </div>
+    <script type="module" src="aprovados.js"></script>
+</body>
+</html>

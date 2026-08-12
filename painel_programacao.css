@@ -1,0 +1,112 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  color: #333;
+  /* Adiciona padding-bottom para que a legenda não cubra o conteúdo */
+  padding-bottom: 70px; /* Ajuste conforme a altura da sua legenda */
+}
+
+.painel-title {
+  text-align: center;
+  font-size: 2em;
+  font-weight: 600;
+  color: #2b3a42;
+  margin: 20px 0;
+}
+
+.painel-container {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* Mudou aqui */
+  gap: 12px;
+  padding: 0 20px 40px;
+}
+
+
+.painel-dia {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 10px;
+}
+
+.painel-dia h2 {
+  text-align: center;
+  margin: 10px 0 8px;
+  font-size: 1.2em;
+  color: #444;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 4px;
+}
+
+.painel-item {
+  border-left: 6px solid #ccc; /* Cor padrão, será sobrescrita pelo JS */
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.painel-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.painel-cliente {
+  font-weight: 600;
+  font-size: 0.75em;
+}
+
+.painel-os, .painel-setor, .painel-data {
+  font-size: 0.75em;
+  color: #555;
+}
+
+/* --- ESTILOS PARA A LEGENDA NO RODAPÉ --- */
+.painel-legend-container {
+  position: fixed; /* Fixa no rodapé */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #ffffff; /* Fundo branco */
+  border-top: 1px solid #e9ecef; /* Borda superior */
+  box-shadow: 0 -4px 15px rgba(0,0,0,0.08); /* Sombra superior */
+  z-index: 1000; /* Garante que fique acima de outros elementos */
+  padding: 10px 20px;
+  box-sizing: border-box; /* Inclui padding na largura total */
+
+  display: flex; /* Para alinhar os itens da legenda lado a lado */
+  justify-content: center; /* Centraliza a legenda */
+  align-items: center;
+  gap: 20px; /* Espaço entre os itens da legenda */
+  flex-wrap: wrap; /* Permite que a legenda quebre linha em telas menores */
+}
+
+.painel-legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap; /* Impede que o texto quebre linha */
+}
+
+.painel-legend-color {
+  display: inline-block;
+  width: 18px; /* Tamanho do quadrado de cor */
+  height: 18px;
+  border-radius: 4px;
+  margin-right: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid rgba(0,0,0,0.05); /* Pequena borda para contraste */
+}
+
+/* Cores da legenda (devem ser as mesmas do JS e do painel principal) */
+.painel-legend-color.arte { background-color: #1E88E5; }
+.painel-legend-color.impressao { background-color: #FB8C00; }
+.painel-legend-color.acabamento { background-color: #FFD54F; }
+.painel-legend-color.corte { background-color: #9CCC65; }
+.painel-legend-color.serralheria { background-color: #A1887F; }
+.painel-legend-color.instalacao { background-color: #F4511E; }

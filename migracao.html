@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Migração de Dados do Kanban</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f0f0; }
+        h1 { color: #333; }
+        #log { border: 1px solid #ccc; background-color: #fff; padding: 15px; margin-top: 20px; height: 400px; overflow-y: scroll; font-family: monospace; white-space: pre-wrap; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; }
+        button { font-size: 18px; padding: 10px 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Ferramenta de Migração de Dados</h1>
+    <p>Esta página irá verificar todas as suas tarefas no banco de dados e adicionar os campos necessários (`deliveryDate` e `order`) para que o novo sistema funcione corretamente.</p>
+    <button id="start-migration-button">Iniciar Migração</button>
+    
+    <h2>Log de Progresso:</h2>
+    <div id="log">Aguardando início...</div>
+
+    <script type="module">
+        // --- Início do Script de Migração ---
+
+        import { getFirestore, collection, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+
+        // Cole sua configuração do Firebase aqui
+        const firebaseConfig = {
+          apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
+          authDomain: "kanban-board-92ce7.firebaseapp.com",
+          projectId: "kanban-board-92ce7",
+          storageBucket: "kanban-board-92ce7.appspot.com",
+          messagingSenderId: "494809291125",
+          appId: "1:494809291125:web:17f9eefa4287d39174db3c"
+        };
+
+        const logElement = document.getElementById('log');
+        const startButton = document.getElementById('start-migration-button');
+
+        function log(message, type = '') {
+            console.log(message);
+            logElement.innerHTML += `<span class="${type}">${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight; // Rola para o final
+        }
+
+        function convertDateToSortable(dateStr) {
+            if (!dateStr || !dateStr.includes('/')) return '9999-12-31';
+            const parts = dateStr.split('/');
+            if (parts.length < 2 || isNaN(parseInt(parts[0])) || isNaN(parseInt(parts[1]))) return '9999-12-31';
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = (parts[2] && parts[2].length === 4) ? parts[2] : new Date().getFullYear();
+            return `${year}-${month}-${day}`;
+        }
+
+        async function runMigration() {
+            startButton.disabled = true;
+            startButton.textContent = "Migração em progresso...";
+            log("🚀 Iniciando script de migração...", "info");
+
+            const app = initializeApp(firebaseConfig, "migrationApp" + Date.now()); // Nome único para a app
+            const db = getFirestore(app);
+            const tasksCollectionRef = collection(db, "tasks");
+            
+            try {
+                const querySnapshot = await getDocs(tasksCollectionRef);
+                const batch = writeBatch(db);
+                let updatesNeeded = 0;
+
+                log(`Encontradas ${querySnapshot.size} tarefas para verificação.`, "info");
+
+                querySnapshot.forEach((document) => {
+                    const data = document.data();
+                    let needsUpdate = false;
+                    const updates = {};
+
+                    // Verifica se 'deliveryDate' existe.
+                    if (data.deliveryDate === undefined) {
+                        const entregaStatus = data.statuses.find(s => s.id === 'entrega');
+                        updates.deliveryDate = convertDateToSortable(entregaStatus?.date || '');
+                        needsUpdate = true;
+                        log(`- Tarefa ${document.id}: Campo 'deliveryDate' será adicionado.`);
+                    }
+
+                    // Verifica se 'order' existe.
+                    if (data.order === undefined) {
+                        updates.order = 0; // Valor padrão
+                        needsUpdate = true;
+                        log(`- Tarefa ${document.id}: Campo 'order' será adicionado.`);
+                    }
+
+                    if (needsUpdate) {
+                        const docRef = doc(db, "tasks", document.id);
+                        batch.update(docRef, updates);
+                        updatesNeeded++;
+                    }
+                });
+
+                if (updatesNeeded > 0) {
+                    log(`\nEnviando ${updatesNeeded} atualizações para o banco de dados...`, "info");
+                    await batch.commit();
+                    log("\n🎉🎉 SUCESSO! Migração concluída! 🎉🎉", "success");
+                    log("Todas as tarefas foram atualizadas. Agora você pode voltar para a página principal (index.html) e recarregá-la.", "success");
+                } else {
+                    log("\n👍 Nenhuma tarefa precisou de migração. Seus dados já estão corretos.", "success");
+                }
+
+            } catch (error) {
+                log(`\n❌ ERRO DURANTE A MIGRAÇÃO: ${error.message}`, "error");
+            } finally {
+                startButton.disabled = false;
+                startButton.textContent = "Iniciar Migração Novamente";
+            }
+        }
+
+        startButton.addEventListener('click', runMigration);
+
+        // --- Fim do Script de Migração ---
+    </script>
+</body>
+</html>

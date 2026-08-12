@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Ferramentas</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            padding-bottom: 20px;
+        }
+        .tools-board {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 30px var(--shadow-color);
+        }
+        .tools-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .tools-header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .tools-header p {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: 4px 0 0 0;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            font-size: 10px;
+            font-weight: 500;
+            color: white;
+            background-color: var(--text-muted);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        .back-link:hover { background-color: #565e64; }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .tool-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--text-color);
+            background-color: var(--light-gray);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px var(--shadow-color);
+            border-color: var(--primary-color);
+        }
+        .tool-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+        .tool-icon svg { width: 22px; height: 22px; }
+
+        .tool-icon.kanban { background-color: var(--primary-color); }
+        .tool-icon.nesting { background-color: var(--green-color); }
+        .tool-icon.leitor { background-color: var(--orange-color); }
+
+        .tool-card h2 {
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .tool-card p {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+        .tool-card .tool-link-label {
+            margin-top: auto;
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--primary-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="tools-board">
+        <div class="tools-header">
+            <div>
+                <h1>Painel de Ferramentas</h1>
+                <p>Acesso rápido aos sistemas internos</p>
+            </div>
+            <a href="index.html" class="back-link" title="Voltar ao Kanban">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                </svg>
+                <span>Voltar</span>
+            </a>
+        </div>
+
+        <div class="tools-grid">
+            <a href="index.html" class="tool-card">
+                <div class="tool-icon kanban">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M2.5 1a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 13.5 1h-11zM3 3h3v9H3V3zm4 0h3v5H7V3zm4 0h2v9h-2V3z"/>
+                    </svg>
+                </div>
+                <h2>Quadro Kanban</h2>
+                <p>Gestão de ordens de serviço por setor: compras, arte, impressão, acabamento, corte, faturamento e instalação.</p>
+                <span class="tool-link-label">Abrir Kanban →</span>
+            </a>
+
+            <a href="https://nesting-cnc-cloud.leonelblume.workers.dev/" target="_blank" class="tool-card">
+                <div class="tool-icon nesting">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M0 2.5A1.5 1.5 0 0 1 1.5 1h13A1.5 1.5 0 0 1 16 2.5v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5v-10zM1.5 2a.5.5 0 0 0-.5.5v10a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-10a.5.5 0 0 0-.5-.5h-13z"/>
+                        <path d="M2 3h4v4H2V3zm5 0h3v3H7V3zm4 0h3v2h-3V3zM2 8h3v2H2V8zm4 0h2v5H6V8zm3 1h4v4H9V9zM2 11h3v2H2v-2z"/>
+                    </svg>
+                </div>
+                <h2>Nesting CNC</h2>
+                <p>Ferramenta de encaixe (nesting) de peças para corte em chapas de PVC expandido e afins.</p>
+                <span class="tool-link-label">Abrir Nesting CNC →</span>
+            </a>
+
+            <a href="https://os-leitor.netlify.app/" target="_blank" class="tool-card">
+                <div class="tool-icon leitor">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z"/>
+                        <path d="M4.5 9.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z"/>
+                    </svg>
+                </div>
+                <h2>Leitor de OS (Compras)</h2>
+                <p>Extrai automaticamente os materiais e quantidades de PDFs de Ordens de Serviço para relatórios de compra.</p>
+                <span class="tool-link-label">Abrir Leitor de OS →</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

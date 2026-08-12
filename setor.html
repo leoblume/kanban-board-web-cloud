@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tarefas do Setor</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+        background-color: var(--light-gray);
+    }
+    .setor-page-container {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .setor-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text-color);
+    }
+    .voltar-button {
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 8px 16px;
+      background-color: var(--primary-color);
+      color: #fff;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    .voltar-button:hover {
+      background-color: #0b5ed7;
+    }
+  </style>
+</head>
+<body>
+  <div class="setor-page-container">
+    <a href="index.html" class="voltar-button">← Voltar ao Principal</a>
+    <h1 id="setor-title">Setor</h1>
+    
+    <!-- Container da lista de tarefas com novo estilo -->
+    <div id="tarefas-do-setor" class="sector-task-list-container">
+      <!-- Cabeçalho da Lista -->
+      <div class="sector-task-list-header">
+        <div>OS</div>
+        <div>Cliente</div>
+        <div style="text-align: center;">Execução</div>
+        <div style="text-align: center;">Ação</div>
+      </div>
+      <!-- As tarefas serão inseridas aqui pelo setor.js -->
+    </div>
+  </div>
+
+  <script type="module" src="setor.js"></script>
+</body>
+</html>

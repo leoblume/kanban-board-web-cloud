@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadro Kanban</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- BIBLIOTECAS PARA EXPORTAÇÃO DE PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="kanban-board">
+        <div class="board-title-header">
+            <h1>Quadro de Gestão Kanban</h1>
+
+            <button id="export-pdf-button" class="export-button" title="Exportar para PDF"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.146 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg> <span>Exportar PDF</span></button>
+            <a href="extrator_de_dados_pdf.html" class="import-button" title="Importar Relatório PDF"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg> <span>Importar</span></a>
+
+            <!-- Adicione este botão dentro da div .board-title-header -->
+            <a href="aprovados.html" target="_blank" class="export-button" style="background-color: #6610f2;" title="Ver Aprovados/Aguardando">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0Zm-2-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path d="M2 1a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h6.256A4.493 4.493 0 0 1 8 12.5a4.49 4.49 0 0 1 1.544-3.393Q9 9 9 8s-1.025-2-2.5-2-2.5 1-2.5 2 1.025 2 2.5 2c.469 0 .886-.06 1.254-.168L7.464 11h-1.39l-1.062 2H3.5L2 11V7h3v4h1.464L5 13.062V14H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v5.256A4.493 4.493 0 0 1 12.5 8a4.49 4.49 0 0 1 3.393 1.544V3a2 2 0 0 0-2-2H2Z"/></svg>
+            <span>Aprovados/Aguardando</span>
+            </a>
+
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Pesquisar Cliente ou OS...">
+                <button id="search-button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg></button>
+                <span id="search-counter"></span>
+            </div>
+
+            <button id="add-row-button" class="add-row-button icon-only" title="Adicionar Pedido Avulso"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg></button>
+
+            <button id="open-tools-panel" class="export-button" style="background-color: #495057;" title="Abrir Painel de Ferramentas">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
+            </svg>
+            <span>Ferramentas</span>
+            </button>
+        </div>
+
+        <div class="kanban-table">
+            <header class="kanban-header"><div class="header-cell"></div><div class="header-cell">Cliente / OS.</div><a href="setor.html?setor=compras&nome=Compras" class="header-cell header-link">Compras</a><a href="setor.html?setor=arte&nome=Arte Final" class="header-cell header-link">Arte Final</a><a href="setor.html?setor=impressao&nome=Impressão" class="header-cell header-link">Impressão</a><a href="setor.html?setor=acabamento&nome=Acabamento" class="header-cell header-link">Acabamento</a><a href="setor.html?setor=corte&nome=Corte" class="header-cell header-link">Corte</a><a href="setor.html?setor=faturamento&nome=Faturamento" class="header-cell header-link">Fat.</a><a href="setor.html?setor=instalacao&nome=Instalação" class="header-cell header-link">Instalação</a><div class="header-cell">Entrega</div><div class="header-cell">Ações</div></header>
+            <div class="header-placeholder"></div>
+            <main id="kanban-body"></main>
+        </div>
+    </div>
+
+    
+    <!-- PAINEL SEMANAL MODIFICADO -->
+  
+    <div id="weekly-schedule-panel">
+        <button id="hide-schedule-button" title="Ocultar Painel">▼</button>
+        <div class="schedule-week">
+            <div class="schedule-day"><div class="schedule-day-header">Segunda</div><div class="drop-zone" id="w1-segunda"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Terça</div><div class="drop-zone" id="w1-terca"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Quarta</div><div class="drop-zone" id="w1-quarta"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Quinta</div><div class="drop-zone" id="w1-quinta"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Sexta</div><div class="drop-zone" id="w1-sexta"></div></div>
+
+            <div class="schedule-day"><div class="schedule-day-header">Sábado</div><div class="drop-zone" id="w1-sabado"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Anotações</div>
+            <textarea id="schedule-notes" placeholder="Anotações gerais..." style="width: 100%; height: 140px; border: none; resize: none; padding: 8px; font-size: 11px; background: transparent; font-family: inherit; outline: none;"></textarea>
+        </div>
+        </div>
+
+        <div class="schedule-side-panel">
+            <button id="open-production-panel" class="production-panel-button" title="Abrir Painel de Produção">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M4 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.5L9.5 1H4zm4.5 1.5L13 7h-3a1 1 0 0 1-1-1V2.5z"/>
+            </svg>
+            <span>Painel Produção</span>
+            </button>
+
+            <div class="schedule-legend">
+              <span><span class="legend-color legend-arte"></span>Arte Final</span>
+              <span><span class="legend-color legend-impressao"></span>Impressão</span>
+              <span><span class="legend-color legend-acabamento"></span>Acabamento</span>
+              <span><span class="legend-color legend-corte"></span>Corte</span>
+              <span><span class="legend-color legend-serralheria"></span>Serralheria</span>
+              <span><span class="legend-color legend-instalacao"></span>Instalação</span>
+            </div>
+        </div>
+    </div>
+
+
+    
+
+    <!-- BOTÃO PARA MOSTRAR PAINEL QUANDO OCULTO -->
+    <button id="show-schedule-button" title="Mostrar Painel de Agendamento">▲ Mostrar Agendamento</button>
+
+    <script type="module" src="script.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <a href="aprovados.html" style="
+  display: inline-block;
+  margin-bottom: 20px;
+  padding: 8px 16px;
+  background-color: #0d6efd;
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+">
+← Voltar ao Painel
+</a>
+  
+  <title>Sincronizar Aprovados via PDF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h1 { font-size: 24px; margin-bottom: 16px; color: #6610f2; }
+    input, button { margin: 10px 0; padding: 10px; font-size: 16px; }
+    button { background: #198754; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #157347; }
+    #resultArea { background: #fff; padding: 16px; border-radius: 8px; margin-top: 20px; box-shadow: 0 0 10px #ccc; }
+    .log-item { margin: 4px 0; font-size: 13px; list-style: none; padding-left: 0; }
+    .added { color: #198754; font-weight: bold; }
+    .removed { color: #dc3545; font-weight: bold; }
+    .updated { color: #0d6efd; }
+  </style>
+</head>
+<body>
+  <h1>Sincronizar Painel Aprovados</h1>
+  <p style="color: #666;">O sistema manterá as observações existentes e removerá apenas o que não estiver no PDF.</p>
+  
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <button onclick="extractData()">Sincronizar Agora</button>
+  <div id="resultArea"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+    const firebaseConfig = { 
+      apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
+      authDomain: "kanban-board-92ce7.firebaseapp.com",
+      projectId: "kanban-board-92ce7",
+      storageBucket: "kanban-board-92ce7.appspot.com",
+      messagingSenderId: "494809291125",
+      appId: "1:494809291125:web:17f9eefa4287d39174db3c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const aprovadosCollection = collection(db, "tasks_aprovados");
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    window.extractData = async function () {
+      const fileInput = document.getElementById('pdfFile');
+      const file = fileInput.files[0];
+      const resultArea = document.getElementById('resultArea');
+
+      if (!file) {
+        alert("Selecione um PDF.");
+        return;
+      }
+
+      resultArea.innerHTML = "⌛ Analisando PDF e comparando com o banco...";
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        try {
+          const typedarray = new Uint8Array(reader.result);
+          const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+          let fullText = '';
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const items = content.items.sort((a, b) => {
+              const yA = a.transform[5], yB = b.transform[5];
+              if (Math.abs(yA - yB) > 5) return yB - yA;
+              return a.transform[4] - b.transform[4];
+            });
+            fullText += items.map(item => item.str).join(' ') + ' ';
+          }
+          fullText = fullText.replace(/\s{2,}/g, ' ');
+
+          // Regex para capturar OS, Cliente/Desc e Data
+          const regex = /(\d{5})\s+(.*?)\s+APR\s+\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+(?:\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}\s+)?(\d{2}\/\d{2}\/\d{4})/g;
+          
+          const tasksFromPdf = [];
+          let match;
+          while ((match = regex.exec(fullText)) !== null) {
+            tasksFromPdf.push({
+              os: match[1],
+              client: match[2].trim(),
+              delivery: match[3]
+            });
+          }
+
+          // 1. Buscar tarefas atuais no banco
+          const snapshot = await getDocs(aprovadosCollection);
+          const tasksInDb = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+          const pdfOsNumbers = tasksFromPdf.map(t => t.os);
+          const dbOsNumbers = tasksInDb.map(t => t.osNumber);
+
+          let addedCount = 0;
+          let removedCount = 0;
+          let updatedCount = 0;
+          let logHTML = "<h3>Relatório de Sincronização:</h3><ul class='log-item'>";
+
+          // 2. Remover o que não está no PDF (Itens Excluídos)
+          for (const dbTask of tasksInDb) {
+            if (!pdfOsNumbers.includes(dbTask.osNumber)) {
+              await deleteDoc(doc(db, "tasks_aprovados", dbTask.id));
+              logHTML += `<li class='removed'>🗑️ Removido: OS ${dbTask.osNumber} - ${dbTask.clientName} (Não consta no PDF)</li>`;
+              removedCount++;
+            }
+          }
+
+          // 3. Adicionar novos ou atualizar existentes
+          for (const pdfTask of tasksFromPdf) {
+            const existing = tasksInDb.find(t => t.osNumber === pdfTask.os);
+            
+            if (existing) {
+              // Atualiza apenas se o cliente ou data mudou (mantendo a observação 'obs' intacta)
+              await updateDoc(doc(db, "tasks_aprovados", existing.id), {
+                clientName: pdfTask.client,
+                deliveryDisplay: pdfTask.delivery,
+                deliveryDate: pdfTask.delivery.split('/').reverse().join('-')
+              });
+              updatedCount++;
+            } else {
+              // Item novo
+              await addDoc(aprovadosCollection, {
+                osNumber: pdfTask.os,
+                clientName: pdfTask.client,
+                deliveryDisplay: pdfTask.delivery,
+                deliveryDate: pdfTask.delivery.split('/').reverse().join('-'),
+                obs: "", // Novo item nasce com obs vazia
+                createdAt: Date.now()
+              });
+              logHTML += `<li class='added'>✅ Novo: OS ${pdfTask.os} - ${pdfTask.client}</li>`;
+              addedCount++;
+            }
+          }
+
+          if (addedCount === 0 && removedCount === 0) {
+            logHTML += "<li>Nada mudou. O banco já está sincronizado com o PDF.</li>";
+          }
+
+          logHTML += "</ul>";
+          logHTML += `<p><b>Resumo:</b> ${addedCount} adicionados, ${removedCount} removidos, ${updatedCount} atualizados.</p>`;
+          
+          resultArea.innerHTML = logHTML;
+          fileInput.value = '';
+
+        } catch (e) {
+          console.error(e);
+          resultArea.innerHTML = "❌ Erro crítico ao sincronizar dados.";
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

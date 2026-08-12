@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel de Programação — Produção</title>
+  <link rel="stylesheet" href="painel_programacao.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <script type="module" src="painel_programacao.js" defer></script>
+</head>
+<body>
+  
+  <!-- <h1 class="painel-title">Programação Semanal — Produção</h1> -->
+  <div id="painel-container" class="painel-container">
+    <div class="painel-dia" id="segunda"><h2>Segunda</h2><div class="painel-lista"></div></div>
+    <div class="painel-dia" id="terca"><h2>Terça</h2><div class="painel-lista"></div></div>
+    <div class="painel-dia" id="quarta"><h2>Quarta</h2><div class="painel-lista"></div></div>
+    <div class="painel-dia" id="quinta"><h2>Quinta</h2><div class="painel-lista"></div></div>
+    <div class="painel-dia" id="sexta"><h2>Sexta</h2><div class="painel-lista"></div></div>
+    <!-- NOVAS COLUNAS -->
+    <div class="painel-dia" id="sabado"><h2>Sábado</h2><div class="painel-lista"></div></div>
+    <div class="painel-dia" id="anotacoes">
+        <h2>Anotações</h2>
+        <div id="display-notes" style="padding: 10px; font-size: 0.85em; white-space: pre-wrap; color: #555;"></div>
+    </div>
+</div>
+  <!-- SEÇÃO DA LEGENDA NO RODAPÉ -->
+  <div class="painel-legend-container">
+    <div class="painel-legend-item"><span class="painel-legend-color arte"></span>Arte Final</div>
+    <div class="painel-legend-item"><span class="painel-legend-color impressao"></span>Impressão</div>
+    <div class="painel-legend-item"><span class="painel-legend-color acabamento"></span>Acabamento</div>
+    <div class="painel-legend-item"><span class="painel-legend-color corte"></span>Corte</div>
+    <div class="painel-legend-item"><span class="painel-legend-color serralheria"></span>Serralheria</div>
+    <div class="painel-legend-item"><span class="painel-legend-color instalacao"></span>Instalação</div>
+  </div>
+  <!-- FIM DA SEÇÃO DA LEGENDA -->
+
+</body>
+</html>
