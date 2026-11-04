@@ -50,7 +50,7 @@ const renderAllTasks = (tasksToRender) => {
                 <input type="text" class="client-name-input" placeholder="Nome do Cliente" value="${task.clientName || ''}">
             </div>
             ${task.statuses.map(s => `
-                <div class="cell">
+                <div class="cell" data-col="${s.id}">
                     <div class="status-control">
                         <button class="status-button ${s.state}" data-status-id="${s.id}"></button>
                         <input type="text" class="status-date-input" placeholder="dd/mm" value="${s.date || ''}" data-status-id="${s.id}">
@@ -171,13 +171,6 @@ weeklySchedulePanel.addEventListener('drop', async e => {
 
 // Clique em remover e clique em item para ciclar cor
 weeklySchedulePanel.addEventListener('click', async e => { 
-    // clique no nome do dia: abre a tela específica do dia em nova aba
-    const dayHeader = e.target.closest('.schedule-day-header');
-    if (dayHeader) {
-        const dayZone = dayHeader.parentElement.querySelector('.drop-zone');
-        if (dayZone) window.open(`dia.html?dia=${encodeURIComponent(dayZone.id)}`, '_blank');
-        return;
-    }
     // exclusão (botão)
     if (e.target.classList.contains('delete-schedule-item-btn')) {
         const item = e.target.closest('.schedule-item');
@@ -226,26 +219,6 @@ weeklySchedulePanel.addEventListener('click', async e => {
     }
 });
 
-// --- DATA AO LADO DO DIA DA SEMANA (semana atual; domingo mostra a próxima) ---
-const SCHEDULE_DAY_INDEX = { segunda: 0, terca: 1, quarta: 2, quinta: 3, sexta: 4, sabado: 5 };
-function updateScheduleDates() {
-    const today = new Date();
-    const offsetToMonday = today.getDay() === 0 ? 1 : 1 - today.getDay();
-    document.querySelectorAll('.schedule-day').forEach(day => {
-        const zone = day.querySelector('.drop-zone');
-        const header = day.querySelector('.schedule-day-header');
-        if (!zone || !header) return;
-        const key = zone.id.split('-').pop();
-        if (!(key in SCHEDULE_DAY_INDEX)) return;
-        if (!header.dataset.name) header.dataset.name = header.textContent.trim();
-        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offsetToMonday + SCHEDULE_DAY_INDEX[key]);
-        const label = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-        header.innerHTML = `${header.dataset.name} <span class="schedule-day-date">${label}</span>`;
-    });
-}
-updateScheduleDates();
-setInterval(updateScheduleDates, 30 * 60 * 1000);
-
 // --- LÓGICA PARA MOSTRAR/OCULTAR PAINEL ---
 const setSchedulePanelVisibility = (isHidden) => {
     document.body.classList.toggle('schedule-is-hidden', isHidden);
@@ -267,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     exportPdfButton.addEventListener('click', exportToPDF);
 });
 // --- PESQUISA, HEADER FIXO, PDF ---
-let currentSearchTerm = ''; let currentMatchingIndices = []; let searchResultPointer = -1; const clearSearchState = () => { currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1; searchCounter.textContent = ''; document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); }; const handleSearch = () => { const newSearchTerm = searchInput.value.toLowerCase().trim(); if (!newSearchTerm) { clearSearchState(); return; } if (newSearchTerm !== currentSearchTerm) { currentSearchTerm = newSearchTerm; currentMatchingIndices = tasks.reduce((acc, task, index) => { if ((task.clientName || '').toLowerCase().includes(currentSearchTerm) || (task.osNumber || '').toLowerCase().includes(currentSearchTerm)) { acc.push(index); } return acc; }, []); searchResultPointer = -1; } if (currentMatchingIndices.length === 0) { searchCounter.textContent = '0/0'; alert('Nenhum item encontrado.'); return; } searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length; const taskIndexToShow = currentMatchingIndices[searchResultPointer]; const foundTask = tasks[taskIndexToShow]; const foundRow = document.getElementById(foundTask.id); if (foundRow) { document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); foundRow.classList.add('highlight'); searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`; } }; function handleStickyHeader() { const header = document.querySelector('.kanban-header'); const placeholder = document.querySelector('.header-placeholder'); const kanbanTable = document.querySelector('.kanban-table'); if (!header || !placeholder || !kanbanTable) return; const scrollTriggerPoint = kanbanTable.offsetTop; if (window.pageYOffset > scrollTriggerPoint) { if (!header.classList.contains('is-sticky')) { header.classList.add('is-sticky'); placeholder.style.display = 'block'; } const rect = kanbanTable.getBoundingClientRect(); placeholder.style.height = `${header.offsetHeight}px`; header.style.width = `${rect.width}px`; header.style.left = `${rect.left}px`; } else { if (header.classList.contains('is-sticky')) { header.classList.remove('is-sticky'); header.style.width = ''; header.style.left = ''; placeholder.style.display = 'none'; } } } const exportToPDF = async () => { const contentToPrint = document.querySelector('.kanban-board'); const originalButtonText = exportPdfButton.querySelector('span').textContent; exportPdfButton.disabled = true; exportPdfButton.querySelector('span').textContent = 'Exportando...'; document.querySelectorAll('.kanban-row').forEach(row => { const clientCell = row.querySelector('.cell-client'); const osInput = row.querySelector('.os-number-input'); const clientInput = row.querySelector('.client-name-input'); if (clientCell && osInput && clientInput) { const tempDiv = document.createElement('div'); tempDiv.className = 'pdf-client-info'; tempDiv.innerHTML = `<span class="pdf-os">${osInput.value}</span><span class="pdf-client">${clientInput.value}</span>`; clientCell.appendChild(tempDiv); } row.querySelectorAll('.status-control').forEach(control => { const dateInput = control.querySelector('.status-date-input'); if (dateInput && dateInput.value) { const tempSpan = document.createElement('span'); tempSpan.className = 'pdf-date-text'; tempSpan.textContent = dateInput.value; control.insertBefore(tempSpan, dateInput); } }); }); document.body.classList.add('print-mode'); try { const { jsPDF } = window.jspdf; const canvas = await html2canvas(contentToPrint, { scale: 2, useCORS: true, logging: false }); const pdf = new jsPDF('l', 'mm', 'a4'); const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = pdf.internal.pageSize.getHeight(); const canvasAspectRatio = canvas.width / canvas.height; let finalPdfHeight = pdfHeight - 20; let finalPdfWidth = finalPdfHeight / canvasAspectRatio; if (finalPdfWidth > pdfWidth - 20) { finalPdfWidth = pdfWidth - 20; finalPdfHeight = finalPdfWidth * canvasAspectRatio; } let position = 0; let heightLeft = canvas.height * (finalPdfWidth / canvas.width); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); while (heightLeft > 0) { position -= (pdfHeight - 20); pdf.addPage(); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position + 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); } pdf.save('quadro-kanban.pdf'); } catch (error) { console.error("Erro ao gerar o PDF:", error); alert("Ocorreu um erro ao gerar o PDF."); } finally { document.body.classList.remove('print-mode'); document.querySelectorAll('.pdf-client-info, .pdf-date-text').forEach(el => el.remove()); exportPdfButton.disabled = false; exportPdfButton.querySelector('span').textContent = originalButtonText; } };
+let currentSearchTerm = ''; let currentMatchingIndices = []; let searchResultPointer = -1; const clearSearchState = () => { currentSearchTerm = ''; currentMatchingIndices = []; searchResultPointer = -1; searchCounter.textContent = ''; document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); }; const handleSearch = () => { const newSearchTerm = searchInput.value.toLowerCase().trim(); if (!newSearchTerm) { clearSearchState(); return; } if (newSearchTerm !== currentSearchTerm) { currentSearchTerm = newSearchTerm; currentMatchingIndices = tasks.reduce((acc, task, index) => { if ((task.clientName || '').toLowerCase().includes(currentSearchTerm) || (task.osNumber || '').toLowerCase().includes(currentSearchTerm)) { acc.push(index); } return acc; }, []); searchResultPointer = -1; } if (currentMatchingIndices.length === 0) { searchCounter.textContent = '0/0'; alert('Nenhum item encontrado.'); return; } searchResultPointer = (searchResultPointer + 1) % currentMatchingIndices.length; const taskIndexToShow = currentMatchingIndices[searchResultPointer]; const foundTask = tasks[taskIndexToShow]; const foundRow = document.getElementById(foundTask.id); if (foundRow) { document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight')); foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); foundRow.classList.add('highlight'); searchCounter.textContent = `${searchResultPointer + 1}/${currentMatchingIndices.length}`; } }; function handleStickyHeader() { const header = document.querySelector('.kanban-header'); const placeholder = document.querySelector('.header-placeholder'); const kanbanTable = document.querySelector('.kanban-table'); if (!header || !placeholder || !kanbanTable) return; const scrollTriggerPoint = kanbanTable.offsetTop; if (window.pageYOffset > scrollTriggerPoint) { if (!header.classList.contains('is-sticky')) { header.classList.add('is-sticky'); placeholder.style.display = 'block'; } const rect = kanbanTable.getBoundingClientRect(); const z = parseFloat(getComputedStyle(document.body).zoom) || 1; placeholder.style.height = `${header.offsetHeight}px`; const pl = parseFloat(getComputedStyle(kanbanTable).paddingLeft) || 0; header.style.width = `${kanbanTable.offsetWidth - pl}px`; header.style.left = `${rect.left / z + pl}px`; } else { if (header.classList.contains('is-sticky')) { header.classList.remove('is-sticky'); header.style.width = ''; header.style.left = ''; placeholder.style.display = 'none'; } } } const exportToPDF = async () => { const contentToPrint = document.querySelector('.kanban-board'); const originalButtonText = exportPdfButton.querySelector('span').textContent; exportPdfButton.disabled = true; exportPdfButton.querySelector('span').textContent = 'Exportando...'; document.querySelectorAll('.kanban-row').forEach(row => { const clientCell = row.querySelector('.cell-client'); const osInput = row.querySelector('.os-number-input'); const clientInput = row.querySelector('.client-name-input'); if (clientCell && osInput && clientInput) { const tempDiv = document.createElement('div'); tempDiv.className = 'pdf-client-info'; tempDiv.innerHTML = `<span class="pdf-os">${osInput.value}</span><span class="pdf-client">${clientInput.value}</span>`; clientCell.appendChild(tempDiv); } row.querySelectorAll('.status-control').forEach(control => { const dateInput = control.querySelector('.status-date-input'); if (dateInput && dateInput.value) { const tempSpan = document.createElement('span'); tempSpan.className = 'pdf-date-text'; tempSpan.textContent = dateInput.value; control.insertBefore(tempSpan, dateInput); } }); }); document.body.classList.add('print-mode'); try { const { jsPDF } = window.jspdf; const canvas = await html2canvas(contentToPrint, { scale: 2, useCORS: true, logging: false }); const pdf = new jsPDF('l', 'mm', 'a4'); const pdfWidth = pdf.internal.pageSize.getWidth(); const pdfHeight = pdf.internal.pageSize.getHeight(); const canvasAspectRatio = canvas.width / canvas.height; let finalPdfHeight = pdfHeight - 20; let finalPdfWidth = finalPdfHeight / canvasAspectRatio; if (finalPdfWidth > pdfWidth - 20) { finalPdfWidth = pdfWidth - 20; finalPdfHeight = finalPdfWidth * canvasAspectRatio; } let position = 0; let heightLeft = canvas.height * (finalPdfWidth / canvas.width); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); while (heightLeft > 0) { position -= (pdfHeight - 20); pdf.addPage(); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position + 10, finalPdfWidth, finalPdfHeight); heightLeft -= (pdfHeight - 20); } pdf.save('quadro-kanban.pdf'); } catch (error) { console.error("Erro ao gerar o PDF:", error); alert("Ocorreu um erro ao gerar o PDF."); } finally { document.body.classList.remove('print-mode'); document.querySelectorAll('.pdf-client-info, .pdf-date-text').forEach(el => el.remove()); exportPdfButton.disabled = false; exportPdfButton.querySelector('span').textContent = originalButtonText; } };
 
 document.getElementById("open-production-panel")?.addEventListener("click", () => {
   window.open("painel_programacao.html", "_blank");
@@ -297,3 +270,36 @@ onSnapshot(doc(db, "schedule", "general-notes"), (docSnap) => {
         notesTextarea.value = docSnap.data().text || "";
     }
 });
+
+
+// --- DATAS AO LADO DOS DIAS DA SEMANA (painel de agendamento) ---
+const WEEK_DAYS = [['segunda', 0], ['terca', 1], ['quarta', 2], ['quinta', 3], ['sexta', 4], ['sabado', 5]];
+function updateScheduleDates() {
+    const now = new Date();
+    const dow = now.getDay(); // 0 = domingo
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    monday.setDate(monday.getDate() - (dow === 0 ? -1 : dow - 1)); // domingo mostra a semana seguinte
+    WEEK_DAYS.forEach(([id, offset]) => {
+        const zone = document.getElementById(`w1-${id}`);
+        const span = zone && zone.previousElementSibling && zone.previousElementSibling.querySelector('.schedule-day-date');
+        if (!span) return;
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + offset);
+        span.textContent = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+}
+updateScheduleDates();
+let lastScheduleDay = new Date().toDateString();
+setInterval(() => { const t = new Date().toDateString(); if (t !== lastScheduleDay) { lastScheduleDay = t; updateScheduleDates(); } }, 60 * 1000);
+
+// --- OCULTAR / MOSTRAR COLUNAS "FAT." E "ENTREGA" ---
+const toggleColsButton = document.getElementById('toggle-extra-cols');
+const setExtraColumns = (showAll) => {
+    document.body.classList.toggle('hide-extra-cols', !showAll);
+    toggleColsButton.querySelector('span').textContent = showAll ? 'Ocultar Fat./Entrega' : 'Mostrar tudo';
+    toggleColsButton.setAttribute('aria-pressed', String(showAll));
+    localStorage.setItem('showAllColumns', showAll ? 'true' : 'false');
+    handleStickyHeader();
+};
+toggleColsButton.addEventListener('click', () => setExtraColumns(document.body.classList.contains('hide-extra-cols')));
+setExtraColumns(localStorage.getItem('showAllColumns') === 'true');
