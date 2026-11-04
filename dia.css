@@ -21,3 +21,20 @@ body { font-family: 'Poppins', sans-serif; background: #f4f6f8; margin: 0; color
 .c.corte { background: #9CCC65; } .c.serralheria { background: #A1887F; } .c.instalacao { background: #F4511E; }
 
 @media (max-width: 640px) { .dia-item { grid-template-columns: 1fr; } }
+
+.dia-header { gap: 12px; }
+.dia-header h1 { flex: 1; }
+.dia-header h1 small { font-size: 0.55em; font-weight: 400; color: #6c757d; margin-left: 6px; }
+.dia-btn-add { font-family: inherit; font-size: 0.85em; font-weight: 500; background: #0d6efd; color: #fff; border: none; border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+.dia-btn-add:hover { background: #0b5ed7; }
+.dia-painel-add { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; margin-bottom: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.06); }
+.dia-painel-add[hidden] { display: none; }
+.dia-painel-add input { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 0.9em; padding: 7px 10px; border: 1px solid #ced4da; border-radius: 6px; margin-bottom: 8px; }
+.dia-lista-os { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.dia-os-opcao { display: flex; justify-content: space-between; gap: 10px; text-align: left; font-family: inherit; font-size: 0.85em; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.dia-os-opcao:hover:not(:disabled) { background: #e7f1ff; border-color: #0d6efd; }
+.dia-os-opcao:disabled { opacity: 0.55; cursor: default; }
+.dia-os-opcao .ja { color: #198754; white-space: nowrap; }
+.dia-item { cursor: pointer; }
+.dia-item .dia-campo { cursor: default; }
+.dia-setor { display: inline-block; margin-top: 4px; font-size: 0.68em; font-weight: 500; padding: 1px 8px; border-radius: 10px; background: #e9ecef; color: #495057; }

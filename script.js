@@ -226,6 +226,26 @@ weeklySchedulePanel.addEventListener('click', async e => {
     }
 });
 
+// --- DATA AO LADO DO DIA DA SEMANA (semana atual; domingo mostra a próxima) ---
+const SCHEDULE_DAY_INDEX = { segunda: 0, terca: 1, quarta: 2, quinta: 3, sexta: 4, sabado: 5 };
+function updateScheduleDates() {
+    const today = new Date();
+    const offsetToMonday = today.getDay() === 0 ? 1 : 1 - today.getDay();
+    document.querySelectorAll('.schedule-day').forEach(day => {
+        const zone = day.querySelector('.drop-zone');
+        const header = day.querySelector('.schedule-day-header');
+        if (!zone || !header) return;
+        const key = zone.id.split('-').pop();
+        if (!(key in SCHEDULE_DAY_INDEX)) return;
+        if (!header.dataset.name) header.dataset.name = header.textContent.trim();
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + offsetToMonday + SCHEDULE_DAY_INDEX[key]);
+        const label = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+        header.innerHTML = `${header.dataset.name} <span class="schedule-day-date">${label}</span>`;
+    });
+}
+updateScheduleDates();
+setInterval(updateScheduleDates, 30 * 60 * 1000);
+
 // --- LÓGICA PARA MOSTRAR/OCULTAR PAINEL ---
 const setSchedulePanelVisibility = (isHidden) => {
     document.body.classList.toggle('schedule-is-hidden', isHidden);

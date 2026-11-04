@@ -385,3 +385,4 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
 /* Cabeçalho do dia clicável (abre dia.html) */
 .schedule-day-header { cursor: pointer; }
 .schedule-day-header:hover { background-color: #e7f1ff; color: var(--primary-color); }
+.schedule-day-date { font-weight: 400; font-size: 11px; margin-left: 4px; opacity: 0.8; }

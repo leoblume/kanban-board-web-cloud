@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, doc, collection, onSnapshot, getDoc, getDocs, updateDoc, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
@@ -11,31 +11,52 @@ const firebaseConfig = {
 };
 const db = getFirestore(initializeApp(firebaseConfig));
 
-const COLORS = {
-  arte: "#1E88E5", impressao: "#FB8C00", acabamento: "#FFD54F",
-  corte: "#9CCC65", serralheria: "#A1887F", instalacao: "#F4511E"
-};
+// Mesma legenda/ciclo de cores do painel principal
+const COLOR_CYCLE = [
+  { id: "", label: "Nenhuma", color: "" },
+  { id: "arte", label: "Arte Final", color: "#1E88E5" },
+  { id: "impressao", label: "Impressão", color: "#FB8C00" },
+  { id: "acabamento", label: "Acabamento", color: "#FFD54F" },
+  { id: "corte", label: "Corte", color: "#9CCC65" },
+  { id: "serralheria", label: "Serralheria", color: "#A1887F" },
+  { id: "instalacao", label: "Instalação", color: "#F4511E" }
+];
 const DIAS = { segunda: "Segunda", terca: "Terça", quarta: "Quarta", quinta: "Quinta", sexta: "Sexta", sabado: "Sábado" };
+const DIA_IDX = { segunda: 0, terca: 1, quarta: 2, quinta: 3, sexta: 4, sabado: 5 };
+
+function dataDoDia(key) {
+  const hoje = new Date();
+  const ate = hoje.getDay() === 0 ? 1 : 1 - hoje.getDay();
+  const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + ate + DIA_IDX[key]);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 const dayId = new URLSearchParams(location.search).get("dia") || "";
-const nomeDia = DIAS[dayId.split("-").pop()];
+const diaKey = dayId.split("-").pop();
+const nomeDia = DIAS[diaKey];
 const lista = document.getElementById("dia-lista");
 const titulo = document.getElementById("dia-titulo");
 const contador = document.getElementById("dia-contador");
+const btnAdd = document.getElementById("btn-add");
+const painelAdd = document.getElementById("painel-add");
+const buscaOs = document.getElementById("busca-os");
+const listaOs = document.getElementById("lista-os");
 
 if (!/^w1-/.test(dayId) || !nomeDia) {
   titulo.textContent = "Dia não encontrado";
+  btnAdd.hidden = true;
   lista.innerHTML = '<div class="dia-vazio">Abra esta tela clicando no nome do dia no painel semanal.</div>';
 } else {
-  titulo.textContent = nomeDia;
-  document.title = `Programação — ${nomeDia}`;
+  const data = dataDoDia(diaKey);
+  titulo.innerHTML = `${nomeDia} <small>${data}</small>`;
+  document.title = `Programação — ${nomeDia} ${data}`;
   iniciar();
 }
 
 function iniciar() {
   const ref = doc(db, "schedule", dayId);
   let tarefas = [];
-  let pendente = false; // snapshot recebido enquanto o usuário digitava
+  let todasOs = [];
 
   const digitando = () => lista.contains(document.activeElement) && document.activeElement.tagName === "INPUT";
 
@@ -62,7 +83,6 @@ function iniciar() {
   }
 
   function render() {
-    pendente = false;
     lista.innerHTML = "";
     contador.textContent = tarefas.length ? `${tarefas.length} tarefa${tarefas.length > 1 ? "s" : ""}` : "";
     if (!tarefas.length) {
@@ -72,7 +92,9 @@ function iniciar() {
     ordenadas().forEach(({ t, idx }) => {
       const card = document.createElement("div");
       card.className = "dia-item";
-      card.style.borderLeftColor = t.color || COLORS[t.colorId] || "#ccc";
+      card.title = "Clique para trocar o setor (cor)";
+      const cor = t.color || (COLOR_CYCLE.find(c => c.id === t.colorId) || {}).color || "";
+      card.style.borderLeftColor = cor || "#ccc";
 
       const info = document.createElement("div");
       info.className = "dia-info";
@@ -82,7 +104,12 @@ function iniciar() {
       const os = document.createElement("div");
       os.className = "dia-os";
       os.textContent = t.osNumber || "";
-      info.append(cli, os);
+      const setor = document.createElement("span");
+      setor.className = "dia-setor";
+      const setorInfo = COLOR_CYCLE.find(c => c.id === (t.colorId || ""));
+      setor.textContent = setorInfo && setorInfo.id ? setorInfo.label : "Sem setor";
+      if (cor) { setor.style.background = cor; setor.style.color = "#1b1b1b"; }
+      info.append(cli, os, setor);
 
       const hora = document.createElement("input");
       hora.type = "time";
@@ -96,6 +123,15 @@ function iniciar() {
       equipe.addEventListener("change", () => salvar(idx, t, { team: equipe.value.trim() }));
 
       card.append(info, campo("Hora", hora), campo("Equipe", equipe));
+
+      // Clique na tarefa (fora dos campos) cicla o setor/cor, igual ao painel principal
+      card.addEventListener("click", e => {
+        if (e.target.closest(".dia-campo")) return;
+        const atual = COLOR_CYCLE.findIndex(c => c.id === (t.colorId || ""));
+        const prox = COLOR_CYCLE[(atual + 1) % COLOR_CYCLE.length];
+        salvar(idx, t, { colorId: prox.id, color: prox.color });
+      });
+
       lista.appendChild(card);
     });
   }
@@ -106,19 +142,82 @@ function iniciar() {
       const snap = await getDoc(ref);
       const arr = snap.exists() ? (snap.data().tasks || []) : [];
       const confere = x => x && x.osNumber === tarefaOriginal.osNumber && x.clientName === tarefaOriginal.clientName;
-      let i = confere(arr[idx]) ? idx : arr.findIndex(confere);
+      const i = confere(arr[idx]) ? idx : arr.findIndex(confere);
       if (i < 0) return;
       arr[i] = { ...arr[i], ...campos };
       await updateDoc(ref, { tasks: arr });
     } catch (e) {
-      console.error("Erro ao salvar equipe/hora:", e);
+      console.error("Erro ao salvar:", e);
       alert("Não foi possível salvar. Verifique a conexão.");
     }
   }
 
+  // ---------- Adicionar OS a este dia ----------
+  function renderOs() {
+    const termo = buscaOs.value.toLowerCase().trim();
+    listaOs.innerHTML = "";
+    const filtradas = todasOs.filter(o =>
+      !termo || (o.clientName || "").toLowerCase().includes(termo) || (o.osNumber || "").toLowerCase().includes(termo));
+    if (!filtradas.length) {
+      listaOs.innerHTML = '<div class="dia-vazio" style="padding:12px 0">Nenhuma OS encontrada.</div>';
+      return;
+    }
+    filtradas.forEach(o => {
+      const jaAdicionada = tarefas.some(t => t.osNumber === o.osNumber && t.clientName === o.clientName);
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "dia-os-opcao";
+      b.disabled = jaAdicionada;
+      const txt = document.createElement("span");
+      txt.textContent = `${o.osNumber || ""} — ${o.clientName || ""}`;
+      b.appendChild(txt);
+      if (jaAdicionada) {
+        const ja = document.createElement("span");
+        ja.className = "ja";
+        ja.textContent = "✓ neste dia";
+        b.appendChild(ja);
+      }
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        try {
+          await setDoc(ref, { tasks: arrayUnion({ osNumber: o.osNumber || "", clientName: o.clientName || "", colorId: "", color: "" }) }, { merge: true });
+        } catch (e) {
+          console.error("Erro ao adicionar OS:", e);
+          alert("Não foi possível adicionar a OS.");
+          b.disabled = false;
+        }
+      });
+      listaOs.appendChild(b);
+    });
+  }
+
+  async function carregarOs() {
+    listaOs.innerHTML = '<div class="dia-vazio" style="padding:12px 0">Carregando...</div>';
+    try {
+      const snap = await getDocs(collection(db, "tasks"));
+      todasOs = snap.docs.map(d => d.data()).sort((a, b) =>
+        (a.deliveryDate || "9999-12-31").localeCompare(b.deliveryDate || "9999-12-31") || (a.order || 0) - (b.order || 0));
+      renderOs();
+    } catch (e) {
+      console.error(e);
+      listaOs.innerHTML = '<div class="dia-vazio" style="color:red">Erro ao carregar as OS.</div>';
+    }
+  }
+
+  btnAdd.addEventListener("click", async () => {
+    const abrir = painelAdd.hidden;
+    painelAdd.hidden = !abrir;
+    btnAdd.setAttribute("aria-expanded", String(abrir));
+    btnAdd.textContent = abrir ? "Fechar lista" : "+ Adicionar OS";
+    if (abrir) { await carregarOs(); buscaOs.focus(); }
+  });
+  buscaOs.addEventListener("input", renderOs);
+
+  // ---------- Tempo real ----------
   onSnapshot(ref, snap => {
     tarefas = snap.exists() ? (snap.data().tasks || []) : [];
-    if (digitando()) { pendente = true; return; }
+    if (!painelAdd.hidden) renderOs();
+    if (digitando()) return; // renderiza ao sair do campo
     render();
   }, err => {
     console.error(err);
@@ -127,6 +226,6 @@ function iniciar() {
 
   // Reordena/atualiza quando o usuário sai do campo
   lista.addEventListener("focusout", () => {
-    setTimeout(() => { if (pendente && !digitando()) render(); else if (!digitando()) render(); }, 0);
+    setTimeout(() => { if (!digitando()) render(); }, 0);
   });
 }
