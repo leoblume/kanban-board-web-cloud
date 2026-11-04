@@ -13,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body>
+<body class="hide-extra-cols">
     <div class="kanban-board">
         <div class="board-title-header">
             <h1>Quadro de Gestão Kanban</h1>
@@ -35,6 +35,11 @@
 
             <button id="add-row-button" class="add-row-button icon-only" title="Adicionar Pedido Avulso"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg></button>
 
+            <button id="toggle-extra-cols" class="export-button" style="background-color: #0a8ea8;" title="Mostrar/ocultar as colunas Fat. e Entrega" aria-pressed="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+            <span>Mostrar tudo</span>
+            </button>
+
             <button id="open-tools-panel" class="export-button" style="background-color: #495057;" title="Abrir Painel de Ferramentas">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
             <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
@@ -44,7 +49,7 @@
         </div>
 
         <div class="kanban-table">
-            <header class="kanban-header"><div class="header-cell"></div><div class="header-cell">Cliente / OS.</div><a href="setor.html?setor=compras&nome=Compras" class="header-cell header-link">Compras</a><a href="setor.html?setor=arte&nome=Arte Final" class="header-cell header-link">Arte Final</a><a href="setor.html?setor=impressao&nome=Impressão" class="header-cell header-link">Impressão</a><a href="setor.html?setor=acabamento&nome=Acabamento" class="header-cell header-link">Acabamento</a><a href="setor.html?setor=corte&nome=Corte" class="header-cell header-link">Corte</a><a href="setor.html?setor=faturamento&nome=Faturamento" class="header-cell header-link">Fat.</a><a href="setor.html?setor=instalacao&nome=Instalação" class="header-cell header-link">Instalação</a><div class="header-cell">Entrega</div><div class="header-cell">Ações</div></header>
+            <header class="kanban-header"><div class="header-cell"></div><div class="header-cell">Cliente / OS.</div><a href="setor.html?setor=compras&nome=Compras" class="header-cell header-link">Compras</a><a href="setor.html?setor=arte&nome=Arte Final" class="header-cell header-link">Arte Final</a><a href="setor.html?setor=impressao&nome=Impressão" class="header-cell header-link">Impressão</a><a href="setor.html?setor=acabamento&nome=Acabamento" class="header-cell header-link">Acabamento</a><a href="setor.html?setor=corte&nome=Corte" class="header-cell header-link">Corte</a><a href="setor.html?setor=faturamento&nome=Faturamento" class="header-cell header-link" data-col="faturamento">Fat.</a><a href="setor.html?setor=instalacao&nome=Instalação" class="header-cell header-link">Instalação</a><div class="header-cell" data-col="entrega">Entrega</div><div class="header-cell">Ações</div></header>
             <div class="header-placeholder"></div>
             <main id="kanban-body"></main>
         </div>
@@ -56,13 +61,13 @@
     <div id="weekly-schedule-panel">
         <button id="hide-schedule-button" title="Ocultar Painel">▼</button>
         <div class="schedule-week">
-            <div class="schedule-day"><div class="schedule-day-header">Segunda</div><div class="drop-zone" id="w1-segunda"></div></div>
-            <div class="schedule-day"><div class="schedule-day-header">Terça</div><div class="drop-zone" id="w1-terca"></div></div>
-            <div class="schedule-day"><div class="schedule-day-header">Quarta</div><div class="drop-zone" id="w1-quarta"></div></div>
-            <div class="schedule-day"><div class="schedule-day-header">Quinta</div><div class="drop-zone" id="w1-quinta"></div></div>
-            <div class="schedule-day"><div class="schedule-day-header">Sexta</div><div class="drop-zone" id="w1-sexta"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Segunda <span class="schedule-day-date"></span></div><div class="drop-zone" id="w1-segunda"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Terça <span class="schedule-day-date"></span></div><div class="drop-zone" id="w1-terca"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Quarta <span class="schedule-day-date"></span></div><div class="drop-zone" id="w1-quarta"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Quinta <span class="schedule-day-date"></span></div><div class="drop-zone" id="w1-quinta"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Sexta <span class="schedule-day-date"></span></div><div class="drop-zone" id="w1-sexta"></div></div>
 
-            <div class="schedule-day"><div class="schedule-day-header">Sábado</div><div class="drop-zone" id="w1-sabado"></div></div>
+            <div class="schedule-day"><div class="schedule-day-header">Sábado <span class="schedule-day-date"></span></div><div class="drop-zone" id="w1-sabado"></div></div>
             <div class="schedule-day"><div class="schedule-day-header">Anotações</div>
             <textarea id="schedule-notes" placeholder="Anotações gerais..." style="width: 100%; height: 140px; border: none; resize: none; padding: 8px; font-size: 11px; background: transparent; font-family: inherit; outline: none;"></textarea>
         </div>
@@ -93,6 +98,26 @@
     <!-- BOTÃO PARA MOSTRAR PAINEL QUANDO OCULTO -->
     <button id="show-schedule-button" title="Mostrar Painel de Agendamento">▲ Mostrar Agendamento</button>
 
+    <!-- PAINEL DO TEMPO (direita) -->
+    <aside id="weather-panel" aria-label="Previsão do tempo">
+        <button id="hide-weather-button" title="Ocultar Painel do Tempo">▶</button>
+        <div class="weather-scroll">
+            <div class="weather-header">
+                <div class="weather-city-tabs" id="weather-city-tabs"></div>
+                <button class="weather-icon-btn" id="weather-add-city" title="Adicionar cidade">+</button>
+                <button class="weather-icon-btn" id="weather-refresh" title="Atualizar agora">⟳</button>
+            </div>
+            <div class="weather-search" id="weather-search" hidden>
+                <input type="text" id="weather-search-input" placeholder="Buscar cidade..." autocomplete="off">
+                <div id="weather-search-results"></div>
+            </div>
+            <div id="weather-body"></div>
+            <div class="weather-footer" id="weather-footer"></div>
+        </div>
+    </aside>
+    <button id="show-weather-button" title="Mostrar Painel do Tempo">🌦️ Tempo</button>
+
     <script type="module" src="script.js" defer></script>
+    <script type="module" src="weather-panel.js" defer></script>
 </body>
 </html>

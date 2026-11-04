@@ -1,0 +1,217 @@
+// weather-panel.js — painel do tempo (lado direito)
+import { getWeather, searchCities, iconFor, rainOutlook } from './weather-core.js';
+
+const REFRESH_MS = 30 * 60 * 1000;   // atualização automática: 30 min
+const DEFAULT_CITIES = [{ name: 'Novo Hamburgo, RS', sub: 'Rio Grande do Sul, Brasil', lat: -29.6783, lon: -51.1306 }];
+
+const $ = id => document.getElementById(id);
+const tabsEl = $('weather-city-tabs'), bodyEl = $('weather-body'), footerEl = $('weather-footer');
+const searchBox = $('weather-search'), searchInput = $('weather-search-input'), searchResults = $('weather-search-results');
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const readJson = (k, fb) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? fb; } catch { return fb; } };
+
+// ---------- estado ----------
+let cities = readJson('weatherCities', DEFAULT_CITIES);
+if (!Array.isArray(cities) || !cities.length) cities = DEFAULT_CITIES.slice();
+let active = Math.min(Math.max(parseInt(localStorage.getItem('weatherActive') || '0', 10) || 0, 0), cities.length - 1);
+const cache = new Map();           // "lat,lon" -> { data, at }
+let errorMsg = null, loading = false;
+const keyOf = c => `${c.lat},${c.lon}`;
+const saveCities = () => { localStorage.setItem('weatherCities', JSON.stringify(cities)); localStorage.setItem('weatherActive', String(active)); };
+
+// ---------- formatação ----------
+const nf = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+const mmTxt = v => (v == null || v < 0.1) ? '0 mm' : `${nf.format(v)} mm`;
+const deg = v => v == null ? '–' : `${Math.round(v)}°`;
+const fmtDur = min => {
+  min = Math.max(0, Math.round(min / 5) * 5);
+  if (min < 90) return `${min} min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? `${h} h ${m} min` : `${h} h`;
+};
+const dayLabel = (iso, i) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d, 12);
+  const wd = dt.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+  const name = i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : wd.charAt(0).toUpperCase() + wd.slice(1);
+  return { name, date: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}` };
+};
+
+// ---------- dados ----------
+const fetchWeather = ({ lat, lon }) => getWeather({ lat, lon });
+const apiSearch = q => searchCities(q);
+
+async function loadCity(city, force = false) {
+  const c = cache.get(keyOf(city));
+  if (!force && c && Date.now() - c.at < REFRESH_MS) { render(); return; }
+  loading = true; render();
+  try {
+    const data = await fetchWeather(city);
+    cache.set(keyOf(city), { data, at: Date.now() });
+    errorMsg = null;
+  } catch (e) {
+    console.error('Erro ao carregar clima:', e);
+    errorMsg = 'Não foi possível carregar a previsão.';
+  }
+  loading = false; render();
+}
+
+// ---------- render ----------
+function renderTabs() {
+  tabsEl.innerHTML = cities.map((c, i) => `
+    <button class="wx-tab${i === active ? ' is-active' : ''}" data-i="${i}" title="${esc(c.sub || c.name)}">
+      ${esc(c.name.split(',')[0])}${cities.length > 1 ? `<span class="wx-tab-x" data-x="${i}" title="Remover">×</span>` : ''}
+    </button>`).join('');
+}
+
+function rainBanner(d) {
+  const o = rainOutlook(d.nowcast.steps, d.nowcast.stepMin);
+  const extra = [o.prob != null ? `${o.prob}%` : null, o.mm != null ? `~${mmTxt(o.mm)}` : null].filter(Boolean).join(' · ');
+  if (o.kind === 'now') {
+    const until = o.untilMin == null ? 'sem previsão de parar nas próximas 24 h' : `deve parar em ~${fmtDur(o.untilMin)}`;
+    return { cls: 'wet', icon: '🌧️', title: 'Chovendo agora', sub: `${until}${extra ? ' · ' + extra : ''}` };
+  }
+  if (o.kind === 'soon') {
+    const when = o.inMin < 5 ? 'em instantes' : `em ~${fmtDur(o.inMin)}`;
+    const dur = o.durMin == null ? '' : ` · dura ~${fmtDur(o.durMin)}`;
+    return { cls: 'soon', icon: '🌦️', title: `Chuva ${when}`, sub: `${extra}${dur}` };
+  }
+  if (o.kind === 'dry') {
+    const next = d.days.findIndex((x, i) => i > 0 && (x.prob >= 40 || x.mm >= 1));
+    const sub = next > 0 ? `Próxima chuva: ${dayLabel(d.days[next].date, next).name} ${dayLabel(d.days[next].date, next).date} (${d.days[next].prob}%, ${mmTxt(d.days[next].mm)})` : 'Sem chuva relevante nos próximos 10 dias';
+    return { cls: 'dry', icon: '☀️', title: 'Sem chuva nas próximas 24 h', sub };
+  }
+  return { cls: 'dry', icon: '❔', title: 'Sem dados de chuva', sub: '' };
+}
+
+function render() {
+  renderTabs();
+  const city = cities[active];
+  const entry = cache.get(keyOf(city));
+
+  if (!entry) {
+    bodyEl.innerHTML = errorMsg
+      ? `<div class="wx-msg wx-msg--err">${esc(errorMsg)}<br><button class="wx-link" id="wx-retry">Tentar de novo</button></div>`
+      : `<div class="wx-msg">Carregando previsão…</div>`;
+    footerEl.textContent = '';
+    return;
+  }
+
+  const d = entry.data, cur = d.current, b = rainBanner(d);
+  bodyEl.innerHTML = `
+    <div class="wx-now">
+      <div class="wx-now-icon" title="${esc(cur.text)}">${iconFor(cur.cat, cur.isDay)}</div>
+      <div class="wx-now-info">
+        <div class="wx-now-temp">${deg(cur.temp)}</div>
+        <div class="wx-now-text">${esc(cur.text)}</div>
+        <div class="wx-now-feels">Sensação ${deg(cur.feels)}</div>
+      </div>
+    </div>
+    <div class="wx-rain wx-rain--${b.cls}">
+      <div class="wx-rain-icon">${b.icon}</div>
+      <div><div class="wx-rain-title">${esc(b.title)}</div><div class="wx-rain-sub">${esc(b.sub)}</div></div>
+    </div>
+    <div class="wx-days-title">Próximos 10 dias</div>
+    <div class="wx-days">
+      ${d.days.map((x, i) => {
+        const l = dayLabel(x.date, i);
+        return `<div class="wx-day${x.prob >= 40 || x.mm >= 1 ? ' is-wet' : ''}" title="${esc(x.text)}">
+          <span class="wx-day-name">${l.name}<small>${l.date}</small></span>
+          <span class="wx-day-icon">${iconFor(x.cat, true)}</span>
+          <span class="wx-day-temp"><b>${deg(x.tmax)}</b><i>${deg(x.tmin)}</i></span>
+          <span class="wx-day-rain"><em>${Math.round(x.prob)}%</em>${mmTxt(x.mm)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  const time = new Date(entry.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const src = 'Open-Meteo';
+  footerEl.innerHTML = `${loading ? 'Atualizando…' : `Atualizado às ${time}`} · Fonte: ${src}`;
+}
+
+// ---------- eventos ----------
+tabsEl.addEventListener('click', e => {
+  const x = e.target.closest('.wx-tab-x');
+  if (x) {                                   // remover cidade
+    e.stopPropagation();
+    const i = Number(x.dataset.x);
+    cities.splice(i, 1);
+    if (active >= cities.length) active = cities.length - 1;
+    else if (i < active) active--;
+    saveCities(); loadCity(cities[active]); return;
+  }
+  const tab = e.target.closest('.wx-tab');
+  if (tab) { active = Number(tab.dataset.i); saveCities(); errorMsg = null; loadCity(cities[active]); }
+});
+
+bodyEl.addEventListener('click', e => { if (e.target.id === 'wx-retry') loadCity(cities[active], true); });
+$('weather-refresh').addEventListener('click', () => loadCity(cities[active], true));
+
+$('weather-add-city').addEventListener('click', () => {
+  searchBox.hidden = !searchBox.hidden;
+  if (!searchBox.hidden) searchInput.focus(); else { searchInput.value = ''; searchResults.innerHTML = ''; }
+});
+
+let searchTimer, searchSeq = 0;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if (q.length < 2) { searchResults.innerHTML = ''; return; }
+  searchTimer = setTimeout(async () => {
+    const seq = ++searchSeq;
+    searchResults.innerHTML = '<div class="wx-msg">Buscando…</div>';
+    try {
+      const res = await apiSearch(q);
+      if (seq !== searchSeq) return;
+      window.__wxResults = res;
+      searchResults.innerHTML = res.length
+        ? res.map((r, i) => `<button class="wx-result" data-i="${i}"><b>${esc(r.name)}</b><small>${esc(r.sub || '')}</small></button>`).join('')
+        : '<div class="wx-msg">Nenhuma cidade encontrada.</div>';
+    } catch (e) { if (seq === searchSeq) searchResults.innerHTML = '<div class="wx-msg wx-msg--err">Erro na busca.</div>'; }
+  }, 350);
+});
+searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') $('weather-add-city').click(); });
+
+searchResults.addEventListener('click', e => {
+  const btn = e.target.closest('.wx-result');
+  if (!btn) return;
+  const r = (window.__wxResults || [])[Number(btn.dataset.i)];
+  if (!r) return;
+  const idx = cities.findIndex(c => Math.abs(c.lat - r.lat) < 0.02 && Math.abs(c.lon - r.lon) < 0.02);
+  if (idx >= 0) active = idx; else { cities.push({ name: r.name, sub: r.sub, lat: r.lat, lon: r.lon }); active = cities.length - 1; }
+  saveCities();
+  searchBox.hidden = true; searchInput.value = ''; searchResults.innerHTML = '';
+  errorMsg = null; loadCity(cities[active]);
+});
+
+// ---------- mostrar / ocultar (igual ao painel da agenda) ----------
+const applyHidden = hidden => document.body.classList.toggle('weather-is-hidden', hidden);
+$('hide-weather-button').addEventListener('click', () => { applyHidden(true); localStorage.setItem('weatherHidden', 'true'); });
+$('show-weather-button').addEventListener('click', () => { applyHidden(false); localStorage.setItem('weatherHidden', 'false'); });
+const storedHidden = localStorage.getItem('weatherHidden');
+applyHidden(storedHidden === null ? window.innerWidth < 1400 : storedHidden === 'true');
+
+// Mantém o painel acima da agenda semanal (que fica fixa embaixo)
+const sched = $('weekly-schedule-panel');
+const syncOffset = () => {
+  const hidden = document.body.classList.contains('schedule-is-hidden');
+  document.documentElement.style.setProperty('--schedule-h', hidden ? '0px' : `${sched.offsetHeight}px`);
+};
+if (sched) {
+  new ResizeObserver(syncOffset).observe(sched);
+  new MutationObserver(syncOffset).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  syncOffset();
+}
+
+// ---------- atualização automática ----------
+setInterval(() => loadCity(cities[active], true), REFRESH_MS);   // a cada 30 min
+setInterval(render, 60 * 1000);                                  // recalcula "chuva em X min" sem nova consulta
+document.addEventListener('visibilitychange', () => {            // abas em segundo plano atrasam timers
+  if (document.visibilityState !== 'visible') return;
+  const c = cache.get(keyOf(cities[active]));
+  if (!c || Date.now() - c.at >= REFRESH_MS) loadCity(cities[active], true); else render();
+});
+
+render();
+loadCity(cities[active], true);
