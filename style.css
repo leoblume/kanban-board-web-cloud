@@ -390,13 +390,13 @@ body.print-mode { background: #fff !important; padding-bottom: 0; }
 
 /* Escala geral da interface (altere --ui-zoom para ajustar: 1 = 100%) */
 body { zoom: var(--ui-zoom); transition: padding-bottom 0.3s ease-in-out, padding-right 0.3s ease-in-out; }
-body.print-mode { zoom: 1; padding-right: 20px !important; }
+body.print-mode { zoom: 1; padding-left: 20px !important; padding-right: 20px !important; }
 
 /* --- Ocultar colunas Faturamento e Entrega --- */
 body.hide-extra-cols [data-col="faturamento"],
 body.hide-extra-cols [data-col="entrega"] { display: none; }
 body.hide-extra-cols .kanban-header,
-body.hide-extra-cols .kanban-row { grid-template-columns: 40px 2.5fr repeat(6, 1fr) 80px; }
+body.hide-extra-cols .kanban-row { grid-template-columns: 40px 2.5fr repeat(6, var(--col-fr)) 80px; }
 body.hide-extra-cols.print-mode .kanban-header,
 body.hide-extra-cols.print-mode .kanban-row { grid-template-columns: 3.5fr repeat(6, 1fr); }
 
@@ -413,8 +413,8 @@ body.hide-extra-cols.print-mode .kanban-row { grid-template-columns: 3.5fr repea
 }
 .weather-scroll { height: 100%; overflow-y: auto; box-sizing: border-box; padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
 body.weather-is-hidden #weather-panel { transform: translateX(100%); opacity: 0; pointer-events: none; }
-body:not(.weather-is-hidden) { padding-right: calc(var(--weather-w) + 14px); }
-@media (max-width: 1100px) { body:not(.weather-is-hidden) { padding-right: 20px; } }
+body:not(.weather-is-hidden) { padding-right: var(--weather-w); }
+@media (max-width: 1100px) { body:not(.weather-is-hidden) { padding-right: 0; } }
 
 #hide-weather-button {
     position: absolute; top: 14px; left: -14px; z-index: 2;
@@ -455,13 +455,13 @@ body.weather-is-hidden #show-weather-button { display: block; }
 .wx-link { margin-top: 6px; border: none; background: none; color: var(--primary-color); cursor: pointer; text-decoration: underline; font: inherit; }
 
 .wx-now { display: flex; align-items: center; gap: 12px; padding: 4px 2px; }
-.wx-now-icon { font-size: 46px; line-height: 1; }
+.wx-now-icon { font-size: 68px; line-height: 1; }
 .wx-now-temp { font-size: 30px; font-weight: 600; line-height: 1.1; }
 .wx-now-text { font-size: 12px; font-weight: 500; }
 .wx-now-feels { font-size: 11px; color: var(--text-muted); }
 
 .wx-rain { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--light-gray); }
-.wx-rain-icon { font-size: 24px; line-height: 1; }
+.wx-rain-icon { font-size: 32px; line-height: 1; }
 .wx-rain-title { font-weight: 600; font-size: 13px; }
 .wx-rain-sub { font-size: 11px; color: var(--text-muted); }
 .wx-rain--wet { background: #e7f1ff; border-color: #9ec5fe; }
@@ -471,11 +471,11 @@ body.weather-is-hidden #show-weather-button { display: block; }
 
 .wx-days-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-top: 2px; }
 .wx-days { display: flex; flex-direction: column; }
-.wx-day { display: grid; grid-template-columns: 62px 24px 1fr auto; align-items: center; gap: 6px; padding: 4px 2px; border-bottom: 1px solid var(--border-color); }
+.wx-day { display: grid; grid-template-columns: 58px 34px 1fr auto; align-items: center; gap: 6px; padding: 2px 2px; border-bottom: 1px solid var(--border-color); }
 .wx-day:last-child { border-bottom: none; }
 .wx-day-name { font-weight: 500; line-height: 1.15; }
 .wx-day-name small { display: block; font-size: 10px; font-weight: 400; color: var(--text-muted); }
-.wx-day-icon { font-size: 18px; text-align: center; }
+.wx-day-icon { font-size: 28px; line-height: 1; text-align: center; }
 .wx-day-temp { display: flex; gap: 6px; font-size: 12px; }
 .wx-day-temp i { font-style: normal; color: var(--text-muted); }
 .wx-day-rain { display: flex; flex-direction: column; align-items: flex-end; font-size: 10px; color: var(--text-muted); line-height: 1.2; }
@@ -488,3 +488,16 @@ body.weather-is-hidden #show-weather-button { display: block; }
 /* Cabeçalho fixo: a largura inclui o padding, alinhando as colunas com as linhas */
 .kanban-header.is-sticky { box-sizing: border-box; }
 .weather-header { margin-left: 8px; }
+
+/* --- Ajustes de layout do quadro --- */
+:root { --col-fr: 0.85fr; --col-gap: 6px; }   /* largura relativa das colunas de setor / espaço entre colunas */
+
+/* sem as folgas laterais: quadro ocupa toda a largura */
+body { padding-left: 0; padding-right: 0; }
+.kanban-board { max-width: none; margin: 0; border-radius: 0 0 12px 12px; }
+
+/* colunas de setor mais estreitas e mais juntas */
+.kanban-header, .kanban-row { grid-template-columns: 40px 2.5fr repeat(8, var(--col-fr)) 80px; gap: var(--col-gap); }
+
+/* título do setor centralizado sobre a coluna */
+.kanban-header > *:nth-child(n+3) { text-align: center; }
