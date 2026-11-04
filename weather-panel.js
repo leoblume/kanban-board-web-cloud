@@ -186,11 +186,14 @@ searchResults.addEventListener('click', e => {
 });
 
 // ---------- mostrar / ocultar (igual ao painel da agenda) ----------
+// Cada página pode ter sua própria preferência (data-weather-key) e padrão (data-weather-default="visible")
+const hiddenKey = document.body.dataset.weatherKey || 'weatherHidden';
+const defaultHidden = document.body.dataset.weatherDefault === 'visible' ? window.innerWidth < 1100 : window.innerWidth < 1400;
 const applyHidden = hidden => document.body.classList.toggle('weather-is-hidden', hidden);
-$('hide-weather-button').addEventListener('click', () => { applyHidden(true); localStorage.setItem('weatherHidden', 'true'); });
-$('show-weather-button').addEventListener('click', () => { applyHidden(false); localStorage.setItem('weatherHidden', 'false'); });
-const storedHidden = localStorage.getItem('weatherHidden');
-applyHidden(storedHidden === null ? window.innerWidth < 1400 : storedHidden === 'true');
+$('hide-weather-button').addEventListener('click', () => { applyHidden(true); localStorage.setItem(hiddenKey, 'true'); });
+$('show-weather-button').addEventListener('click', () => { applyHidden(false); localStorage.setItem(hiddenKey, 'false'); });
+const storedHidden = localStorage.getItem(hiddenKey);
+applyHidden(storedHidden === null ? defaultHidden : storedHidden === 'true');
 
 // Mantém o painel acima da agenda semanal (que fica fixa embaixo)
 const sched = $('weekly-schedule-panel');

@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Programação do Dia</title>
   <link rel="stylesheet" href="dia.css">
+  <link rel="stylesheet" href="weather.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
   <script type="module" src="dia.js" defer></script>
+  <script type="module" src="weather-panel.js" defer></script>
 </head>
-<body>
+<body data-weather-key="weatherHiddenDia" data-weather-default="visible">
   <div class="dia-wrapper">
     <nav class="dia-topo">
       <a href="index.html" id="btn-principal" class="dia-btn-nav">← Voltar ao Principal</a>
@@ -23,7 +25,7 @@
     <div id="dia-lista" class="dia-lista"></div>
   </div>
 
-  <!-- Gaveta lateral: aba discreta na borda direita que abre a lista de OS -->
+  <!-- Gaveta lateral: aba discreta na borda ESQUERDA que abre a lista de OS -->
   <aside id="gaveta-os" class="dia-gaveta" aria-hidden="true">
     <button id="gaveta-aba" class="dia-aba" type="button" aria-expanded="false" aria-controls="gaveta-os" title="Adicionar pedidos a este dia">+ Adicionar OS</button>
     <div class="dia-gaveta-conteudo">
@@ -35,6 +37,25 @@
       <div id="lista-os" class="dia-lista-os"></div>
     </div>
   </aside>
+
+  <!-- PAINEL DO TEMPO (direita) — igual ao do quadro principal -->
+  <aside id="weather-panel" aria-label="Previsão do tempo">
+    <button id="hide-weather-button" title="Ocultar Painel do Tempo">▶</button>
+    <div class="weather-scroll">
+      <div class="weather-header">
+        <div class="weather-city-tabs" id="weather-city-tabs"></div>
+        <button class="weather-icon-btn" id="weather-add-city" title="Adicionar cidade">+</button>
+        <button class="weather-icon-btn" id="weather-refresh" title="Atualizar agora">⟳</button>
+      </div>
+      <div class="weather-search" id="weather-search" hidden>
+        <input type="text" id="weather-search-input" placeholder="Buscar cidade..." autocomplete="off">
+        <div id="weather-search-results"></div>
+      </div>
+      <div id="weather-body"></div>
+      <div class="weather-footer" id="weather-footer"></div>
+    </div>
+  </aside>
+  <button id="show-weather-button" title="Mostrar Painel do Tempo">🌦️ Tempo</button>
 
   <div class="dia-legend">
     <span><i class="c arte"></i>Arte Final</span>

@@ -31,7 +31,17 @@ function dataDoDia(key) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-const dayId = new URLSearchParams(location.search).get("dia") || "";
+// Dia corrente da semana (domingo mostra a segunda, como o painel semanal do principal)
+const ORDEM_DIAS = Object.keys(DIAS);
+const diaCorrente = () => { const g = new Date().getDay(); return g === 0 ? "segunda" : ORDEM_DIAS[g - 1]; };
+const urlDoDia = key => `dia.html?dia=w1-${key}`;
+
+// Sem ?dia= na URL (ex.: abriu/atualizou a página direto) → mostra o dia corrente
+let dayId = new URLSearchParams(location.search).get("dia") || "";
+if (!dayId) {
+  dayId = `w1-${diaCorrente()}`;
+  history.replaceState(null, "", urlDoDia(diaCorrente()));
+}
 const diaKey = dayId.split("-").pop();
 const nomeDia = DIAS[diaKey];
 const lista = document.getElementById("dia-lista");
@@ -55,7 +65,7 @@ if (!/^w1-/.test(dayId) || !nomeDia) {
   const ordem = Object.keys(DIAS);
   const pos = ordem.indexOf(diaKey);
   const ligar = (el, alvo) => {
-    if (alvo) el.href = `dia.html?dia=w1-${alvo}`;
+    if (alvo) el.href = urlDoDia(alvo);
     else el.classList.add("desativada");
   };
   ligar(document.getElementById("btn-anterior"), ordem[pos - 1]);
@@ -266,3 +276,31 @@ function iniciar() {
     setTimeout(() => { if (!digitando()) render(); }, 0);
   });
 }
+
+
+// ---------- Volta sozinha para o dia corrente ----------
+// • Depois de VOLTAR_HOJE_MS sem nenhuma interação, se estiver em outro dia, volta para o dia de hoje.
+// • Quando a data muda (meia-noite), vai para o novo dia corrente.
+// Não interrompe quem está digitando nem quando a gaveta "Adicionar OS" está aberta.
+const VOLTAR_HOJE_MS = 25 * 1000;     // ajuste aqui (20–30 s)
+let ultimaAtividade = Date.now();
+let dataAoCarregar = new Date().toDateString();
+["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll"].forEach(ev =>
+  document.addEventListener(ev, () => { ultimaAtividade = Date.now(); }, { passive: true, capture: true }));
+
+const ocupado = () => {
+  const a = document.activeElement;
+  const digitando = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+  return digitando || gaveta.classList.contains("aberta");
+};
+
+function verificarDiaCorrente() {
+  if (ocupado()) return;
+  const hoje = diaCorrente();
+  const virou = new Date().toDateString() !== dataAoCarregar;
+  const emOutroDia = diaKey !== hoje;
+  const ocioso = Date.now() - ultimaAtividade >= VOLTAR_HOJE_MS;
+  if (virou || (emOutroDia && ocioso)) location.replace(urlDoDia(hoje));
+}
+setInterval(verificarDiaCorrente, 5000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") verificarDiaCorrente(); });
