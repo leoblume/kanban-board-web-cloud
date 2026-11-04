@@ -172,6 +172,7 @@ function combineModels(results, baseline = null) {
       text: CAT[cat]?.label || primary.current.text,
     },
     days,
+    modelForecasts: results.filter(x => x.data).map(x => ({ id: x.id, label: x.label, data: x.data })),
     consensus: {
       models: results.map(x => ({ id: x.id, label: x.label, ok: Boolean(x.data), error: x.error || null })),
       count: available.length,
