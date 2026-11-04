@@ -171,7 +171,6 @@ function iniciar() {
 
   // Remove só esta tarefa do dia (relê o documento antes, como em salvar)
   async function remover(idx, tarefaOriginal) {
-    if (!confirm(`Remover ${tarefaOriginal.osNumber || ""} ${tarefaOriginal.clientName || ""} deste dia?`.replace(/\s+/g, " "))) return;
     try {
       const snap = await getDoc(ref);
       const arr = snap.exists() ? (snap.data().tasks || []) : [];
