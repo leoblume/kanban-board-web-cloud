@@ -10,9 +10,14 @@
 </head>
 <body>
   <div class="dia-wrapper">
-    <header class="dia-header">
-      <h1 id="dia-titulo">Programação do Dia</h1>
+    <nav class="dia-topo">
+      <a href="index.html" id="btn-principal" class="dia-btn-nav" title="Voltar ao painel principal">← Principal</a>
       <span id="dia-contador" class="dia-contador"></span>
+    </nav>
+    <header class="dia-header">
+      <a id="btn-anterior" class="dia-seta" href="#" title="Dia anterior" aria-label="Dia anterior">‹</a>
+      <h1 id="dia-titulo">Programação do Dia</h1>
+      <a id="btn-proximo" class="dia-seta" href="#" title="Próximo dia" aria-label="Próximo dia">›</a>
     </header>
 
     <div id="dia-lista" class="dia-lista"></div>

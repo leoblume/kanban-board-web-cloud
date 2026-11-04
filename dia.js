@@ -46,11 +46,20 @@ const listaOs = document.getElementById("lista-os");
 if (!/^w1-/.test(dayId) || !nomeDia) {
   titulo.textContent = "Dia não encontrado";
   gaveta.hidden = true;
+  document.querySelectorAll(".dia-seta").forEach(a => a.classList.add("desativada"));
   lista.innerHTML = '<div class="dia-vazio">Abra esta tela clicando no nome do dia no painel semanal.</div>';
 } else {
   const data = dataDoDia(diaKey);
   titulo.innerHTML = `${nomeDia} <small>${data}</small>`;
   document.title = `Programação — ${nomeDia} ${data}`;
+  const ordem = Object.keys(DIAS);
+  const pos = ordem.indexOf(diaKey);
+  const ligar = (el, alvo) => {
+    if (alvo) el.href = `dia.html?dia=w1-${alvo}`;
+    else el.classList.add("desativada");
+  };
+  ligar(document.getElementById("btn-anterior"), ordem[pos - 1]);
+  ligar(document.getElementById("btn-proximo"), ordem[pos + 1]);
   iniciar();
 }
 
@@ -123,11 +132,18 @@ function iniciar() {
       equipe.value = t.team || "";
       equipe.addEventListener("change", () => salvar(idx, t, { team: equipe.value.trim() }));
 
-      card.append(info, campo("Hora", hora), campo("Equipe", equipe));
+      const excluir = document.createElement("button");
+      excluir.type = "button";
+      excluir.className = "dia-excluir";
+      excluir.title = "Remover do dia";
+      excluir.textContent = "×";
+      excluir.addEventListener("click", () => remover(idx, t));
+
+      card.append(info, campo("Hora", hora), campo("Equipe", equipe), excluir);
 
       // Clique na tarefa (fora dos campos) cicla o setor/cor, igual ao painel principal
       card.addEventListener("click", e => {
-        if (e.target.closest(".dia-campo")) return;
+        if (e.target.closest(".dia-campo, .dia-excluir")) return;
         const atual = COLOR_CYCLE.findIndex(c => c.id === (t.colorId || ""));
         const prox = COLOR_CYCLE[(atual + 1) % COLOR_CYCLE.length];
         salvar(idx, t, { colorId: prox.id, color: prox.color });
@@ -150,6 +166,23 @@ function iniciar() {
     } catch (e) {
       console.error("Erro ao salvar:", e);
       alert("Não foi possível salvar. Verifique a conexão.");
+    }
+  }
+
+  // Remove só esta tarefa do dia (relê o documento antes, como em salvar)
+  async function remover(idx, tarefaOriginal) {
+    if (!confirm(`Remover ${tarefaOriginal.osNumber || ""} ${tarefaOriginal.clientName || ""} deste dia?`.replace(/\s+/g, " "))) return;
+    try {
+      const snap = await getDoc(ref);
+      const arr = snap.exists() ? (snap.data().tasks || []) : [];
+      const confere = x => x && x.osNumber === tarefaOriginal.osNumber && x.clientName === tarefaOriginal.clientName;
+      const i = confere(arr[idx]) ? idx : arr.findIndex(confere);
+      if (i < 0) return;
+      arr.splice(i, 1);
+      await updateDoc(ref, { tasks: arr });
+    } catch (e) {
+      console.error("Erro ao remover:", e);
+      alert("Não foi possível remover. Verifique a conexão.");
     }
   }
 
