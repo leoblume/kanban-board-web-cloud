@@ -501,3 +501,7 @@ body { padding-left: 0; padding-right: 0; }
 
 /* título do setor centralizado sobre a coluna */
 .kanban-header > *:nth-child(n+3) { text-align: center; }
+
+/* Cabeçalho do dia clicável (abre dia.html) — mantém a data ao lado do nome */
+.schedule-day-header.schedule-day-link { cursor: pointer; transition: background-color .15s, color .15s; }
+.schedule-day-header.schedule-day-link:hover, .schedule-day-header.schedule-day-link:focus-visible { background-color: #e7f1ff; color: var(--primary-color); outline: none; }

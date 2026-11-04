@@ -292,6 +292,20 @@ updateScheduleDates();
 let lastScheduleDay = new Date().toDateString();
 setInterval(() => { const t = new Date().toDateString(); if (t !== lastScheduleDay) { lastScheduleDay = t; updateScheduleDates(); } }, 60 * 1000);
 
+// --- CLIQUE NO DIA: abre a tela específica do dia (hora, equipe e lista de OS) ---
+WEEK_DAYS.forEach(([id]) => {
+    const zone = document.getElementById(`w1-${id}`);
+    const header = zone && zone.previousElementSibling;
+    if (!header) return;
+    header.classList.add('schedule-day-link');
+    header.title = 'Abrir programação deste dia';
+    header.setAttribute('role', 'link');
+    header.tabIndex = 0;
+    const abrir = () => window.open(`dia.html?dia=w1-${id}`, '_blank');
+    header.addEventListener('click', abrir);
+    header.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
+});
+
 // --- OCULTAR / MOSTRAR COLUNAS "FAT." E "ENTREGA" ---
 const toggleColsButton = document.getElementById('toggle-extra-cols');
 const setExtraColumns = (showAll) => {

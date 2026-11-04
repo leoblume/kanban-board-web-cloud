@@ -13,16 +13,23 @@
     <header class="dia-header">
       <h1 id="dia-titulo">Programação do Dia</h1>
       <span id="dia-contador" class="dia-contador"></span>
-      <button id="btn-add" class="dia-btn-add" type="button" aria-expanded="false">+ Adicionar OS</button>
     </header>
 
-    <!-- Lista de OS's: sempre começa oculta -->
-    <section id="painel-add" class="dia-painel-add" hidden>
-      <input id="busca-os" type="text" placeholder="Pesquisar Cliente ou OS...">
-      <div id="lista-os" class="dia-lista-os"></div>
-    </section>
     <div id="dia-lista" class="dia-lista"></div>
   </div>
+
+  <!-- Gaveta lateral: aba discreta na borda direita que abre a lista de OS -->
+  <aside id="gaveta-os" class="dia-gaveta" aria-hidden="true">
+    <button id="gaveta-aba" class="dia-aba" type="button" aria-expanded="false" aria-controls="gaveta-os" title="Adicionar pedidos a este dia">+ Adicionar OS</button>
+    <div class="dia-gaveta-conteudo">
+      <div class="dia-gaveta-topo">
+        <strong>Adicionar pedidos ao dia</strong>
+        <button id="gaveta-fechar" class="dia-gaveta-fechar" type="button" title="Fechar">×</button>
+      </div>
+      <input id="busca-os" type="text" placeholder="Pesquisar Cliente ou OS...">
+      <div id="lista-os" class="dia-lista-os"></div>
+    </div>
+  </aside>
 
   <div class="dia-legend">
     <span><i class="c arte"></i>Arte Final</span>

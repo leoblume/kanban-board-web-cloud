@@ -37,14 +37,15 @@ const nomeDia = DIAS[diaKey];
 const lista = document.getElementById("dia-lista");
 const titulo = document.getElementById("dia-titulo");
 const contador = document.getElementById("dia-contador");
-const btnAdd = document.getElementById("btn-add");
-const painelAdd = document.getElementById("painel-add");
+const gaveta = document.getElementById("gaveta-os");
+const aba = document.getElementById("gaveta-aba");
+const btnFechar = document.getElementById("gaveta-fechar");
 const buscaOs = document.getElementById("busca-os");
 const listaOs = document.getElementById("lista-os");
 
 if (!/^w1-/.test(dayId) || !nomeDia) {
   titulo.textContent = "Dia não encontrado";
-  btnAdd.hidden = true;
+  gaveta.hidden = true;
   lista.innerHTML = '<div class="dia-vazio">Abra esta tela clicando no nome do dia no painel semanal.</div>';
 } else {
   const data = dataDoDia(diaKey);
@@ -204,19 +205,23 @@ function iniciar() {
     }
   }
 
-  btnAdd.addEventListener("click", async () => {
-    const abrir = painelAdd.hidden;
-    painelAdd.hidden = !abrir;
-    btnAdd.setAttribute("aria-expanded", String(abrir));
-    btnAdd.textContent = abrir ? "Fechar lista" : "+ Adicionar OS";
+  async function alternarGaveta(abrir) {
+    gaveta.classList.toggle("aberta", abrir);
+    gaveta.setAttribute("aria-hidden", String(!abrir));
+    aba.setAttribute("aria-expanded", String(abrir));
+    aba.textContent = abrir ? "Fechar lista" : "+ Adicionar OS";
     if (abrir) { await carregarOs(); buscaOs.focus(); }
-  });
+  }
+  const gavetaAberta = () => gaveta.classList.contains("aberta");
+  aba.addEventListener("click", () => alternarGaveta(!gavetaAberta()));
+  btnFechar.addEventListener("click", () => alternarGaveta(false));
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && gavetaAberta()) alternarGaveta(false); });
   buscaOs.addEventListener("input", renderOs);
 
   // ---------- Tempo real ----------
   onSnapshot(ref, snap => {
     tarefas = snap.exists() ? (snap.data().tasks || []) : [];
-    if (!painelAdd.hidden) renderOs();
+    if (gavetaAberta()) renderOs();
     if (digitando()) return; // renderiza ao sair do campo
     render();
   }, err => {
