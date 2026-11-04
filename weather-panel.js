@@ -126,8 +126,11 @@ function render() {
     </div>`;
 
   const time = new Date(entry.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const src = 'Open-Meteo';
-  footerEl.innerHTML = `${loading ? 'Atualizando…' : `Atualizado às ${time}`} · Fonte: ${src}`;
+  const c = d.consensus;
+  const confidenceLabel = c ? ({ alta: 'Alta', moderada: 'Moderada', baixa: 'Baixa', limitada: 'Limitada' }[c.confidence] || 'Parcial') : '—';
+  const confidenceClass = c?.confidence === 'alta' ? 'is-high' : c?.confidence === 'moderada' ? 'is-medium' : 'is-low';
+  const modelNames = c ? c.models.map(m => `${m.ok ? '✓' : '×'} ${m.label}`).join(' · ') : 'Open-Meteo';
+  footerEl.innerHTML = `${c ? `<div class="wx-consensus ${confidenceClass}"><span>Consenso ${confidenceLabel}</span><b>${c.count}/${c.total} modelos</b></div><div class="wx-models" title="${esc(modelNames)}">${esc(modelNames)}</div>` : ''}<div>${loading ? 'Atualizando…' : `Atualizado às ${time}`} · ${c ? 'Open-Meteo · ECMWF / GFS / ICON' : 'Fonte: Open-Meteo'}</div>${d.note ? `<div class="wx-note">${esc(d.note)}</div>` : ''}`;
 }
 
 // ---------- eventos ----------
