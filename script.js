@@ -1,6 +1,6 @@
 // --- Importações do Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDoc, writeBatch, setDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDoc, writeBatch, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // --- Configuração do Firebase ---
 const firebaseConfig = {
@@ -102,7 +102,6 @@ const COLOR_CYCLE = [
 function renderScheduleItem(task) {
     const item = document.createElement('div');
     item.className = 'schedule-item';
-    item.draggable = true;
     item.dataset.os = task.osNumber || '';
     item.dataset.client = task.clientName || '';
     item.dataset.colorId = task.colorId || '';
@@ -150,37 +149,6 @@ onSnapshot(scheduleCollection, (snapshot) => {
 weeklySchedulePanel.addEventListener('dragover', e => { e.preventDefault(); const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.add('drag-over'); });
 weeklySchedulePanel.addEventListener('dragleave', e => { const dropZone = e.target.closest('.drop-zone'); if (dropZone) dropZone.classList.remove('drag-over'); });
 
-
-// --- MOVER TAREFA ENTRE DIAS (arrastar dentro do painel semanal) ---
-async function moverTarefaEntreDias(deFromId, paraId, os, cliente) {
-    if (!deFromId || !paraId || deFromId === paraId) return;
-    const origem = doc(db, "schedule", deFromId), destino = doc(db, "schedule", paraId);
-    const confere = t => t && t.osNumber === os && t.clientName === cliente;
-    try {
-        await runTransaction(db, async tx => {
-            const [a, b] = [await tx.get(origem), await tx.get(destino)];
-            const arrA = a.exists() ? (a.data().tasks || []) : [];
-            const tarefa = arrA.find(confere);
-            if (!tarefa) return;
-            const arrB = b.exists() ? (b.data().tasks || []) : [];
-            tx.set(origem, { tasks: arrA.filter(t => !confere(t)) }, { merge: true });
-            if (!arrB.some(confere)) tx.set(destino, { tasks: [...arrB, tarefa] }, { merge: true });
-        });
-    } catch (error) { console.error("Erro ao mover tarefa:", error); alert("Não foi possível mover a tarefa. Verifique a conexão."); }
-}
-weeklySchedulePanel.addEventListener('dragstart', e => {
-    const item = e.target.closest && e.target.closest('.schedule-item');
-    const zone = item && item.closest('.drop-zone');
-    if (!item || !zone) return;
-    e.dataTransfer.setData('application/json', JSON.stringify({ osNumber: item.dataset.os, clientName: item.dataset.client, fromDay: zone.id }));
-    e.dataTransfer.effectAllowed = 'move';
-    item.classList.add('dragging');
-});
-weeklySchedulePanel.addEventListener('dragend', e => {
-    document.querySelectorAll('.schedule-item.dragging').forEach(el => el.classList.remove('dragging'));
-    document.querySelectorAll('.drop-zone.drag-over').forEach(z => z.classList.remove('drag-over'));
-});
-
 weeklySchedulePanel.addEventListener('drop', async e => { 
     e.preventDefault(); 
     const dropZone = e.target.closest('.drop-zone'); 
@@ -188,7 +156,6 @@ weeklySchedulePanel.addEventListener('drop', async e => {
         dropZone.classList.remove('drag-over'); 
         try { 
             const taskData = JSON.parse(e.dataTransfer.getData('application/json')); 
-            if (taskData && taskData.fromDay) { await moverTarefaEntreDias(taskData.fromDay, dropZone.id, taskData.osNumber, taskData.clientName); return; }
             if (taskData && taskData.osNumber && taskData.clientName) { 
                 const dayId = dropZone.id;
                 const scheduleDocRef = doc(db, "schedule", dayId);

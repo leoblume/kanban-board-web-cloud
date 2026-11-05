@@ -505,8 +505,3 @@ body { padding-left: 0; padding-right: 0; }
 /* Cabeçalho do dia clicável (abre dia.html) — mantém a data ao lado do nome */
 .schedule-day-header.schedule-day-link { cursor: pointer; transition: background-color .15s, color .15s; }
 .schedule-day-header.schedule-day-link:hover, .schedule-day-header.schedule-day-link:focus-visible { background-color: #e7f1ff; color: var(--primary-color); outline: none; }
-
-/* Arrastar tarefas entre os dias (painel semanal) */
-.schedule-item { cursor: grab; }
-.schedule-item.dragging { opacity: .4; cursor: grabbing; }
-.drop-zone.drag-over { outline: 2px dashed var(--primary-color); outline-offset: -3px; }

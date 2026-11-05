@@ -17,16 +17,12 @@
       <span id="dia-contador" class="dia-contador"></span>
     </nav>
     <header class="dia-header">
-      <h1 id="dia-titulo">Programação</h1>
-      <div class="dia-ctrl" role="group" aria-label="Período exibido">
-        <button type="button" id="btn-hoje" class="dia-chip">Hoje</button>
-        <button type="button" class="dia-chip" data-modo="dia">1 dia</button>
-        <button type="button" class="dia-chip" data-modo="1">1 semana</button>
-        <button type="button" class="dia-chip" data-modo="2">2 semanas</button>
-      </div>
+      <a id="btn-anterior" class="dia-seta" href="#" title="Dia anterior" aria-label="Dia anterior">‹</a>
+      <h1 id="dia-titulo">Programação do Dia</h1>
+      <a id="btn-proximo" class="dia-seta" href="#" title="Próximo dia" aria-label="Próximo dia">›</a>
     </header>
 
-    <div id="dia-grade" class="dia-grade"></div>
+    <div id="dia-lista" class="dia-lista"></div>
   </div>
 
   <!-- Gaveta lateral: aba discreta na borda ESQUERDA que abre a lista de OS -->
@@ -34,7 +30,7 @@
     <button id="gaveta-aba" class="dia-aba" type="button" aria-expanded="false" aria-controls="gaveta-os" title="Adicionar pedidos a este dia">+ Adicionar OS</button>
     <div class="dia-gaveta-conteudo">
       <div class="dia-gaveta-topo">
-        <strong id="gaveta-titulo">Adicionar pedidos ao dia</strong>
+        <strong>Adicionar pedidos ao dia</strong>
         <button id="gaveta-fechar" class="dia-gaveta-fechar" type="button" title="Fechar">×</button>
       </div>
       <input id="busca-os" type="text" placeholder="Pesquisar Cliente ou OS...">
