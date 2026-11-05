@@ -51,7 +51,10 @@ const tituloGaveta = document.getElementById("gaveta-titulo");
 
 const params = new URLSearchParams(location.search);
 let selecionado = idValido(params.get("dia")) ? params.get("dia") : diaCorrenteId();
-let semanas = parseInt(localStorage.getItem("diaSemanas") || "2", 10) === 1 ? 1 : MAX_SEMANAS;
+let modo = "dia";                            // "dia" | "1" | "2" — sempre abre em 1 dia (não é guardado)
+const TODOS_IDS = [...Array(MAX_SEMANAS).keys()].flatMap(s => ORDEM_DIAS.map(k => idDoDia(s, k)));
+const semanasVisiveis = () => modo === "2" ? 2 : 1;
+const idsVisiveis = () => modo === "dia" ? [selecionado] : TODOS_IDS.slice(0, semanasVisiveis() * 6);
 const tarefasPorDia = {};                    // dayId -> tarefas[]
 const unsubs = {};                           // dayId -> cancelar listener
 let todasOs = [];
@@ -71,30 +74,42 @@ function ordenadas(tarefas) {
 }
 
 // ---------- estrutura da grade ----------
+function criarColuna(id) {
+  const m = /^w(\d)-(\w+)$/.exec(id), semana = +m[1] - 1, key = m[2], i = ORDEM_DIAS.indexOf(key), d = dataDe(semana, i);
+  const col = document.createElement("section");
+  col.className = "dia-col";
+  col.dataset.dia = id;
+  if (mesmoDia(d, new Date())) col.classList.add("hoje");
+  col.innerHTML = `<div class="dia-col-topo" title="Selecionar este dia (para Adicionar OS)"><span>${DIAS[key]}</span><small>${fmt(d)} · <span class="n">0</span></small></div><div class="dia-col-lista"></div>`;
+  return col;
+}
 function montarGrade() {
   grade.innerHTML = "";
-  for (let s = 0; s < semanas; s++) {
-    const rot = document.createElement("div");
-    rot.className = "dia-semana-rotulo";
-    rot.textContent = `Semana ${s + 1} · ${fmt(dataDe(s, 0))} a ${fmt(dataDe(s, 5))}`;
-    grade.appendChild(rot);
-    ORDEM_DIAS.forEach((key, i) => {
-      const id = idDoDia(s, key), d = dataDe(s, i);
-      const col = document.createElement("section");
-      col.className = "dia-col";
-      col.dataset.dia = id;
-      if (mesmoDia(d, new Date())) col.classList.add("hoje");
-      col.innerHTML = `<div class="dia-col-topo" title="Selecionar este dia (para Adicionar OS)"><span>${DIAS[key]}</span><small>${fmt(d)} · <span class="n">0</span></small></div><div class="dia-col-lista"></div>`;
-      grade.appendChild(col);
-    });
+  grade.classList.toggle("modo-dia", modo === "dia");
+  if (modo === "dia") {
+    const pos = TODOS_IDS.indexOf(selecionado);
+    const um = document.createElement("div");
+    um.className = "dia-um";
+    const seta = (delta, txt, rot) => { const b = document.createElement("button"); b.type = "button"; b.className = "dia-seta"; b.dataset.nav = delta; b.textContent = txt; b.title = rot + " (solte uma tarefa aqui para movê-la)"; b.setAttribute("aria-label", rot); if (!TODOS_IDS[pos + delta]) b.classList.add("desativada"); return b; };
+    um.append(seta(-1, "‹", "Dia anterior"), criarColuna(selecionado), seta(1, "›", "Próximo dia"));
+    grade.appendChild(um);
+  } else {
+    for (let s = 0; s < semanasVisiveis(); s++) {
+      const rot = document.createElement("div");
+      rot.className = "dia-semana-rotulo";
+      rot.textContent = `Semana ${s + 1} · ${fmt(dataDe(s, 0))} a ${fmt(dataDe(s, 5))}`;
+      const sem = document.createElement("div");
+      sem.className = "dia-semana";
+      ORDEM_DIAS.forEach(k => sem.appendChild(criarColuna(idDoDia(s, k))));
+      grade.append(rot, sem);
+    }
   }
   marcarSelecionado();
   ouvirDias();
 }
 
 function ouvirDias() {
-  const ativos = new Set();
-  for (let s = 0; s < semanas; s++) ORDEM_DIAS.forEach(k => ativos.add(idDoDia(s, k)));
+  const ativos = new Set(idsVisiveis());
   Object.keys(unsubs).forEach(id => { if (!ativos.has(id)) { unsubs[id](); delete unsubs[id]; delete tarefasPorDia[id]; } });
   ativos.forEach(id => {
     if (unsubs[id]) { renderDia(id); return; }
@@ -110,8 +125,8 @@ function ouvirDias() {
 const colDe = id => grade.querySelector(`.dia-col[data-dia="${id}"]`);
 
 function atualizarContador() {
-  const total = Object.entries(tarefasPorDia).reduce((n, [, a]) => n + a.length, 0);
-  contador.textContent = total ? `${total} tarefa${total > 1 ? "s" : ""} no período` : "";
+  const total = idsVisiveis().reduce((n, id) => n + (tarefasPorDia[id] || []).length, 0);
+  contador.textContent = total ? `${total} tarefa${total > 1 ? "s" : ""}` : "";
 }
 
 function marcarSelecionado() {
@@ -177,8 +192,9 @@ function renderDia(dayId) {
       e.dataTransfer.setData("application/json", JSON.stringify({ osNumber: t.osNumber || "", clientName: t.clientName || "", fromDay: dayId }));
       e.dataTransfer.effectAllowed = "move";
       card.classList.add("dragging");
+      setTimeout(() => grade.classList.add("arrastando"), 0);   // inputs/botões não capturam o "soltar"
     });
-    card.addEventListener("dragend", () => { card.classList.remove("dragging"); grade.querySelectorAll(".drag-over").forEach(c => c.classList.remove("drag-over")); });
+    card.addEventListener("dragend", () => { card.classList.remove("dragging"); grade.classList.remove("arrastando"); grade.querySelectorAll(".drag-over").forEach(c => c.classList.remove("drag-over")); });
     lista.appendChild(card);
   });
 }
@@ -227,25 +243,40 @@ async function mover(deId, paraId, os, cliente) {
 }
 
 // ---------- arrastar e soltar entre os dias ----------
-grade.addEventListener("dragover", e => { const c = e.target.closest(".dia-col"); if (!c) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; c.classList.add("drag-over"); });
-grade.addEventListener("dragleave", e => { const c = e.target.closest(".dia-col"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("drag-over"); });
+const alvoDrop = e => e.target.closest(".dia-col, [data-nav]");
+grade.addEventListener("dragover", e => { const c = alvoDrop(e); if (!c) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; c.classList.add("drag-over"); });
+grade.addEventListener("dragleave", e => { const c = alvoDrop(e); if (c && !c.contains(e.relatedTarget)) c.classList.remove("drag-over"); });
 grade.addEventListener("drop", async e => {
-  const c = e.target.closest(".dia-col");
+  const c = alvoDrop(e);
   if (!c) return;
   e.preventDefault();
   c.classList.remove("drag-over");
+  grade.classList.remove("arrastando");
   try {
     const d = JSON.parse(e.dataTransfer.getData("application/json"));
-    if (d && d.fromDay) await mover(d.fromDay, c.dataset.dia, d.osNumber, d.clientName);
+    const destino = c.dataset.nav ? TODOS_IDS[TODOS_IDS.indexOf(selecionado) + Number(c.dataset.nav)] : c.dataset.dia;
+    if (d && d.fromDay && destino) await mover(d.fromDay, destino, d.osNumber, d.clientName);
   } catch (err) { console.error(err); }
 });
-// Clique no cabeçalho do dia: escolhe o dia que recebe as OS da gaveta
+function navegar(delta) {
+  const novo = TODOS_IDS[TODOS_IDS.indexOf(selecionado) + delta];
+  if (!novo) return;
+  selecionado = novo;
+  montarGrade();
+  if (gavetaAberta()) renderOs();
+}
 grade.addEventListener("click", e => {
-  const topo = e.target.closest(".dia-col-topo");
-  if (!topo) return;
+  const nav = e.target.closest("[data-nav]");
+  if (nav) { navegar(Number(nav.dataset.nav)); return; }
+  const topo = e.target.closest(".dia-col-topo");              // escolhe o dia que recebe as OS da gaveta
+  if (!topo || modo === "dia") return;
   selecionado = topo.parentElement.dataset.dia;
   marcarSelecionado();
   if (gavetaAberta()) renderOs();
+});
+document.addEventListener("keydown", e => {
+  if (modo !== "dia" || digitando() || document.activeElement === buscaOs) return;
+  if (e.key === "ArrowLeft") navegar(-1); else if (e.key === "ArrowRight") navegar(1);
 });
 
 // ---------- Adicionar OS ao dia selecionado ----------
@@ -295,22 +326,22 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && gavetaAber
 buscaOs.addEventListener("input", renderOs);
 grade.addEventListener("focusout", () => setTimeout(() => { if (!digitando()) Object.keys(tarefasPorDia).forEach(renderDia); }, 0));
 
-// ---------- período (1 ou 2 semanas) e "Hoje" ----------
-function aplicarSemanas(n) {
-  semanas = n;
-  localStorage.setItem("diaSemanas", String(n));
-  document.querySelectorAll("[data-semanas]").forEach(b => b.classList.toggle("ativo", +b.dataset.semanas === n));
-  if (!/^w1-/.test(selecionado) && n === 1) selecionado = diaCorrenteId();
+// ---------- período: 1 dia (padrão) / 1 semana / 2 semanas ----------
+function aplicarModo(m) {
+  modo = m;
+  document.querySelectorAll("[data-modo]").forEach(b => b.classList.toggle("ativo", b.dataset.modo === m));
+  if (m === "1" && !/^w1-/.test(selecionado)) selecionado = diaCorrenteId();
   montarGrade();
 }
-document.querySelectorAll("[data-semanas]").forEach(b => b.addEventListener("click", () => aplicarSemanas(+b.dataset.semanas)));
+document.querySelectorAll("[data-modo]").forEach(b => b.addEventListener("click", () => aplicarModo(b.dataset.modo)));
 document.getElementById("btn-hoje").addEventListener("click", () => {
-  selecionado = diaCorrenteId(); marcarSelecionado();
+  selecionado = diaCorrenteId();
+  if (modo === "dia") { montarGrade(); return; }
+  marcarSelecionado();
   const c = colDe(selecionado); if (c) c.scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
-aplicarSemanas(semanas);
-setTimeout(() => { const c = colDe(selecionado); if (c) c.scrollIntoView({ block: "center" }); }, 400);
+aplicarModo("dia");
 
 // Quando a data muda (meia-noite), recarrega para recalcular as datas e o destaque de "hoje"
 const dataAoCarregar = new Date().toDateString();

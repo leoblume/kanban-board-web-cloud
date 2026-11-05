@@ -72,10 +72,15 @@ body:not(.weather-is-hidden) .dia-legend { width: auto; right: var(--weather-w);
 .dia-chip { font: inherit; font-size: 0.8em; padding: 6px 12px; border: 1px solid #ced4da; background: #fff; color: #495057; border-radius: 16px; cursor: pointer; }
 .dia-chip:hover { border-color: #0d6efd; color: #0d6efd; }
 .dia-chip.ativo { background: #0d6efd; border-color: #0d6efd; color: #fff; }
-.dia-grade { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-.dia-semana-rotulo { grid-column: 1 / -1; font-size: 0.72em; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #6c757d; margin: 8px 0 -2px; }
-.dia-semana-rotulo:first-child { margin-top: 0; }
-.dia-col { background: #eef1f4; border: 2px solid transparent; border-radius: 8px; display: flex; flex-direction: column; min-height: 120px; transition: background .15s, border-color .15s; }
+.dia-grade { display: block; }
+.dia-semana { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+.dia-um { display: flex; align-items: flex-start; gap: 12px; max-width: 640px; margin: 0 auto; }
+.dia-um .dia-col { flex: 1; min-width: 0; min-height: 260px; }
+.dia-um .dia-seta { margin-top: 4px; }
+.dia-seta.drag-over { background: #198754; transform: scale(1.15); }
+.dia-grade.arrastando .dia-item input, .dia-grade.arrastando .dia-item button { pointer-events: none; }
+.dia-semana-rotulo { font-size: 0.72em; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #6c757d; margin: 8px 0 -2px; }
+.dia-col { min-width: 0; overflow: hidden; background: #eef1f4; border: 2px solid transparent; border-radius: 8px; display: flex; flex-direction: column; min-height: 120px; transition: background .15s, border-color .15s; }
 .dia-col.hoje .dia-col-topo { background: #0d6efd; color: #fff; }
 .dia-col.selecionado { border-color: #0d6efd; }
 .dia-col.drag-over { background: #dbe9ff; border-color: #0d6efd; border-style: dashed; }
@@ -95,8 +100,6 @@ body:not(.weather-is-hidden) .dia-legend { width: auto; right: var(--weather-w);
 .dia-l3 input[type=text] { flex: 1; }
 .dia-l3 input:focus { outline: 2px solid #0d6efd55; border-color: #0d6efd; }
 .dia-item .dia-excluir { width: 20px; height: 20px; font-size: 16px; flex: none; }
-@media (max-width: 1250px) { .dia-grade { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .dia-grade { grid-template-columns: 1fr; } }
 
 /* ---------- Painel do tempo na tela do Dia: coluna +15% (290 → 334 px) e leitura mais clara ---------- */
 body { --weather-w: 334px; }
@@ -116,3 +119,18 @@ body #weather-panel .wx-day-temp i, body #weather-panel .wx-day-rain, body #weat
 body #weather-panel .wx-day.is-wet .wx-day-rain em { color: #0a58ca; }
 body #weather-panel .wx-consensus, body #weather-panel .wx-model-choice, body #weather-panel .wx-models, body #weather-panel .weather-footer { font-size: 11.5px; }
 body #weather-panel .wx-tab { font-size: 12.5px; }
+
+/* Cartão: conteúdo sempre dentro da largura */
+.dia-item { box-sizing: border-box; min-width: 0; max-width: 100%; overflow: hidden; }
+.dia-item > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.dia-l1 .dia-cliente { overflow: hidden; }
+.dia-l2 { flex-wrap: wrap; row-gap: 2px; overflow: hidden; }
+.dia-l2 > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dia-l2 .dia-setor { white-space: nowrap; flex: none; }
+.dia-l3 { flex-wrap: wrap; }
+.dia-l3 input { box-sizing: border-box; }
+.dia-l3 input[type=time] { flex: 0 0 82px; width: 82px; }
+.dia-l3 input[type=text] { flex: 1 1 60px; width: auto; }
+.dia-header { margin-bottom: 12px; }
+.dia-item { text-align: left; }
+.dia-l3 input[type=time] { flex: 0 0 94px; width: 94px; }
