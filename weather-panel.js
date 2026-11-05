@@ -69,7 +69,7 @@ function renderTabs() {
 
 function rainBanner(d) {
   const o = rainOutlook(d.nowcast.steps, d.nowcast.stepMin);
-  const extra = [o.prob != null ? `${o.prob}%` : null, o.mm != null ? `~${mmTxt(o.mm)}` : null].filter(Boolean).join(' · ');
+  const extra = [o.n ? `${o.agree}/${o.n} modelos` : (o.prob != null ? `${o.prob}%` : null), o.mm != null ? `~${mmTxt(o.mm)}` : null].filter(Boolean).join(' · ');
   if (o.kind === 'now') {
     const until = o.untilMin == null ? 'sem previsão de parar nas próximas 24 h' : `deve parar em ~${fmtDur(o.untilMin)}`;
     return { cls: 'wet', icon: '🌧️', title: 'Chovendo agora', sub: `${until}${extra ? ' · ' + extra : ''}` };
@@ -123,8 +123,10 @@ function render() {
     <div class="wx-days">
       ${d.days.map((x, i) => {
         const l = dayLabel(x.date, i);
-        return `<div class="wx-day${x.prob >= 40 || x.mm >= 1 ? ' is-wet' : ''}" title="${esc(x.text)}">
-          <span class="wx-day-name">${l.name}<small>${l.date}</small></span>
+        const confTxt = { alta: 'Modelos concordam', moderada: 'Divergência moderada', baixa: 'Modelos divergem', limitada: 'Poucos modelos neste dia' }[x.conf];
+        const tip = x.n ? `${x.text} · ${x.n} modelo${x.n > 1 ? 's' : ''}${x.spread != null ? ` · máx. varia ${Math.round(x.spread)}°` : ''}${x.probSource === 'concordância' ? ` · chuva: ${x.wet}/${x.n} modelos` : ''} · ${confTxt}` : x.text;
+        return `<div class="wx-day${x.prob >= 40 || x.mm >= 1 ? ' is-wet' : ''}" title="${esc(tip)}">
+          <span class="wx-day-name"><span class="wx-dot wx-dot--${x.conf || 'limitada'}"></span>${l.name}<small>${l.date}</small></span>
           <span class="wx-day-icon">${iconFor(x.cat, true)}</span>
           <span class="wx-day-temp"><b>${deg(x.tmax)}</b><i>${deg(x.tmin)}</i></span>
           <span class="wx-day-rain"><em>${Math.round(x.prob)}%</em>${mmTxt(x.mm)}</span>

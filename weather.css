@@ -107,3 +107,7 @@ body.weather-is-hidden #show-weather-button { display: block; }
 .wx-model-choice:hover { border-color: var(--primary-color); color: var(--primary-color); }
 .wx-model-choice.is-active { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
 .wx-model-choice:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+
+/* Confiança por dia (concordância entre modelos) */
+.wx-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: middle; background: #adb5bd; }
+.wx-dot--alta { background: #18a058; } .wx-dot--moderada { background: #e0a800; } .wx-dot--baixa { background: #dc3545; }

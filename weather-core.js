@@ -58,7 +58,7 @@ async function openMeteoWeather(lat, lon, model = 'best_match') {
   const url = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${lat}&longitude=${lon}&models=${encodeURIComponent(model)}`
     + '&current=temperature_2m,apparent_temperature,weather_code,is_day'
-    + (model === 'best_match' ? '&minutely_15=precipitation&hourly=precipitation,precipitation_probability' : '')
+    + (model === 'best_match' ? '&minutely_15=precipitation&hourly=precipitation,precipitation_probability' : '&hourly=precipitation')
     + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max'
     + '&forecast_days=10&timezone=auto';
   const j = await getJson(url, 'Open-Meteo');
@@ -94,7 +94,7 @@ async function openMeteoWeather(lat, lon, model = 'best_match') {
     const cat = catFromWmo(dd.weather_code[i]);
     return {
       date, cat, text: CAT[cat].label,
-      prob: dd.precipitation_probability_max ? (dd.precipitation_probability_max[i] ?? 0) : 0,
+      prob: dd.precipitation_probability_max ? (dd.precipitation_probability_max[i] ?? null) : null,
       mm: Math.round((dd.precipitation_sum[i] || 0) * 10) / 10,
       tmax: dd.temperature_2m_max[i], tmin: dd.temperature_2m_min[i],
     };
@@ -130,6 +130,18 @@ function consensusCategory(items) {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || (CAT[a[0]]?.sev ?? 4) - (CAT[b[0]]?.sev ?? 4))[0][0];
 }
 
+function consensusNowcast(available) {
+  const withSteps = available.filter(x => x.nowcast && x.nowcast.steps && x.nowcast.steps.length && x.nowcast.stepMin === 60);
+  if (withSteps.length < 2) return null;
+  const maps = withSteps.map(x => new Map(x.nowcast.steps.map(s => [s.t, s.mm])));
+  const steps = withSteps[0].nowcast.steps.map(s => {
+    const vals = maps.map(m => m.get(s.t)).filter(Number.isFinite);
+    const wet = vals.filter(v => v >= 0.1).length;
+    return { t: s.t, mm: median(vals) ?? 0, prob: null, agree: wet, n: vals.length };
+  });
+  return { stepMin: 60, steps, consensus: true };
+}
+
 function combineModels(results, baseline = null) {
   const available = results.filter(x => x.data).map(x => ({ ...x.data, label: x.label }));
   if (!available.length) throw new Error('Nenhum modelo meteorológico respondeu.');
@@ -148,20 +160,28 @@ function combineModels(results, baseline = null) {
   const days = primary.days.map((baseDay, i) => {
     const dayModels = available.map(x => x.days[i]).filter(Boolean);
     const dayCat = consensusCategory(dayModels.map(x => x.cat));
+    const n = dayModels.length, wet = dayModels.filter(x => x.mm >= 1).length;
+    const tmaxs = dayModels.map(x => x.tmax).filter(Number.isFinite);
+    const spread = tmaxs.length > 1 ? Math.max(...tmaxs) - Math.min(...tmaxs) : null;
+    const rainSplit = wet > 0 && wet < n;                       // modelos divergem sobre haver chuva
+    const dayConf = n < 2 ? 'limitada' : (!rainSplit && spread <= 3 ? 'alta' :(spread <= 5 ? 'moderada' : 'baixa'));
+    const probReal = median(dayModels.map(x => x.prob));       // ignora modelos sem probabilidade
     return {
       ...baseDay,
       cat: dayCat,
       text: CAT[dayCat]?.label || baseDay.text,
       tmax: median(dayModels.map(x => x.tmax)) ?? baseDay.tmax,
       tmin: median(dayModels.map(x => x.tmin)) ?? baseDay.tmin,
-      prob: median(dayModels.map(x => x.prob)) ?? baseDay.prob,
+      prob: probReal ?? Math.round(100 * wet / Math.max(1, n)),
+      probSource: probReal == null ? 'concordância' : 'modelos',
+      n, wet, spread, conf: dayConf,
       mm: median(dayModels.map(x => x.mm)) ?? baseDay.mm,
     };
   });
 
   return {
     ...primary,
-    nowcast: baseline?.nowcast || primary.nowcast,
+    nowcast: consensusNowcast(available) || baseline?.nowcast || primary.nowcast,
     provider: 'consensus',
     note: available.length < WEATHER_MODELS.length ? 'Alguns modelos não responderam; consenso parcial.' : null,
     current: {
@@ -223,11 +243,11 @@ export function rainOutlook(steps, stepMin, now = Date.now()) {
   const wet = s => s.mm >= 0.1 && (s.prob == null || s.prob >= 30);
   const i = up.findIndex(wet);
   if (i === -1) return { kind: 'dry' };
-  let j = i, mm = 0, prob = 0;
-  while (j < up.length && wet(up[j])) { mm += up[j].mm; prob = Math.max(prob, up[j].prob ?? 0); j++; }
+  let j = i, mm = 0, prob = 0, agree = 0, nMod = 0;
+  while (j < up.length && wet(up[j])) { mm += up[j].mm; prob = Math.max(prob, up[j].prob ?? 0); agree = Math.max(agree, up[j].agree ?? 0); nMod = Math.max(nMod, up[j].n ?? 0); j++; }
   const end = j < up.length ? up[j].t : null;
   const start = up[i].t;
   const mmR = Math.round(mm * 10) / 10, probR = prob || null;
-  if (start <= now) return { kind: 'now', untilMin: end == null ? null : Math.max(0, (end - now) / 60000), mm: mmR, prob: probR };
-  return { kind: 'soon', inMin: (start - now) / 60000, durMin: end == null ? null : (end - start) / 60000, mm: mmR, prob: probR };
+  if (start <= now) return { kind: 'now', untilMin: end == null ? null : Math.max(0, (end - now) / 60000), mm: mmR, prob: probR, agree, n: nMod };
+  return { kind: 'soon', inMin: (start - now) / 60000, durMin: end == null ? null : (end - start) / 60000, mm: mmR, prob: probR, agree, n: nMod };
 }
