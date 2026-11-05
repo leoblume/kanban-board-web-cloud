@@ -134,3 +134,11 @@ body #weather-panel .wx-tab { font-size: 12.5px; }
 .dia-header { margin-bottom: 12px; }
 .dia-item { text-align: left; }
 .dia-l3 input[type=time] { flex: 0 0 94px; width: 94px; }
+/* Cartão: ocupa toda a largura (o align-items:center herdado centralizava e encolhia as linhas) */
+.dia-item { align-items: stretch; justify-content: flex-start; gap: 4px; padding: 6px 8px; }
+.dia-l1 { width: 100%; }
+.dia-l2 { justify-content: flex-start; width: 100%; }
+.dia-l3 { width: 100%; gap: 6px; align-items: center; }
+.dia-l3 input { height: 26px; padding: 0 6px; }
+.dia-l3 input[type=time] { flex: 0 0 96px; width: 96px; }
+.dia-l3 input[type=text] { flex: 1 1 70px; }

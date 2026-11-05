@@ -334,17 +334,32 @@ function aplicarModo(m) {
   montarGrade();
 }
 document.querySelectorAll("[data-modo]").forEach(b => b.addEventListener("click", () => aplicarModo(b.dataset.modo)));
-document.getElementById("btn-hoje").addEventListener("click", () => {
-  selecionado = diaCorrenteId();
-  if (modo === "dia") { montarGrade(); return; }
-  marcarSelecionado();
-  const c = colDe(selecionado); if (c) c.scrollIntoView({ behavior: "smooth", block: "center" });
-});
+// "Hoje": volta para a visão de 1 dia, no dia corrente
+function irParaHoje() { selecionado = diaCorrenteId(); aplicarModo("dia"); }
+document.getElementById("btn-hoje").addEventListener("click", irParaHoje);
 
 aplicarModo("dia");
 
-// Quando a data muda (meia-noite), recarrega para recalcular as datas e o destaque de "hoje"
+// ---------- Volta sozinha para 1 dia no dia corrente ----------
+// • Depois de VOLTAR_HOJE_MS sem nenhuma interação, se estiver em outro dia/período, volta para 1 dia no dia de hoje.
+// • Quando a data muda (meia-noite), abre o novo dia corrente.
+// Não interrompe quem está digitando nem quando a gaveta "Adicionar OS" está aberta.
+const VOLTAR_HOJE_MS = 25 * 1000;     // ajuste aqui (20–30 s)
+let ultimaAtividade = Date.now();
 const dataAoCarregar = new Date().toDateString();
-const checarVirada = () => { if (new Date().toDateString() !== dataAoCarregar && !digitando() && !gavetaAberta()) location.reload(); };
-setInterval(checarVirada, 60 * 1000);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checarVirada(); });
+["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll", "dragstart", "dragover"].forEach(ev =>
+  document.addEventListener(ev, () => { ultimaAtividade = Date.now(); }, { passive: true, capture: true }));
+
+const ocupado = () => {
+  const a = document.activeElement;
+  return (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) || gavetaAberta();
+};
+function verificarDiaCorrente() {
+  if (ocupado()) return;
+  if (new Date().toDateString() !== dataAoCarregar) { location.replace("dia.html"); return; }   // virou o dia
+  const hoje = diaCorrenteId();
+  const fora = modo !== "dia" || selecionado !== hoje;
+  if (fora && Date.now() - ultimaAtividade >= VOLTAR_HOJE_MS) irParaHoje();
+}
+setInterval(verificarDiaCorrente, 5000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") verificarDiaCorrente(); });
