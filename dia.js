@@ -34,10 +34,15 @@ function dataDoDia(key, sem = 1) {
 // Dia corrente da semana (domingo mostra a segunda, como o painel semanal do principal)
 const ORDEM_DIAS = Object.keys(DIAS);
 const diaCorrente = () => { const g = new Date().getDay(); return g === 0 ? "segunda" : ORDEM_DIAS[g - 1]; };
-const urlDoDia = (key, sem = 1) => `dia.html?dia=w${sem}-${key}`;
+// marcar=true: abertura intencional (clique no painel, setas, grade); o carimbo "t" vale por poucos segundos.
+// Endereço antigo (aba restaurada, favorito, histórico) não tem carimbo válido e abre no dia de hoje.
+const urlDoDia = (key, sem = 1, marcar = false) => `dia.html?dia=w${sem}-${key}${marcar ? `&t=${Date.now()}` : ""}`;
+const INTENCAO_MS = 15 * 1000;
 
 // Sem ?dia= na URL (ex.: abriu/atualizou a página direto) → mostra o dia corrente
-let dayId = new URLSearchParams(location.search).get("dia") || "";
+const params = new URLSearchParams(location.search);
+const intencional = Date.now() - Number(params.get("t") || 0) < INTENCAO_MS;
+let dayId = intencional ? (params.get("dia") || "") : "";
 if (!dayId) {
   dayId = `w1-${diaCorrente()}`;
   history.replaceState(null, "", urlDoDia(diaCorrente()));
@@ -69,7 +74,10 @@ if (!/^w[12]-/.test(dayId) || !nomeDia) {
   const ordem = Object.keys(DIAS);
   const pos = ordem.indexOf(diaKey);
   const ligar = (el, alvo) => {
-    if (alvo) el.href = urlDoDia(alvo, semana);
+    if (alvo) {
+      el.href = urlDoDia(alvo, semana);
+      el.addEventListener("click", e => { e.preventDefault(); location.href = urlDoDia(alvo, semana, true); });
+    }
     else el.classList.add("desativada");
   };
   ligar(document.getElementById("btn-anterior"), ordem[pos - 1]);
@@ -178,15 +186,16 @@ function iniciar() {
   }
 
   // Relê o documento antes de gravar, para não sobrescrever mudanças feitas no painel principal
-  async function salvar(idx, tarefaOriginal, campos) {
+  async function salvar(idx, tarefaOriginal, campos, id = dayId) {
+    const r = id === dayId ? ref : doc(db, "schedule", id);
     try {
-      const snap = await getDoc(ref);
+      const snap = await getDoc(r);
       const arr = snap.exists() ? (snap.data().tasks || []) : [];
       const confere = x => x && x.osNumber === tarefaOriginal.osNumber && x.clientName === tarefaOriginal.clientName;
       const i = confere(arr[idx]) ? idx : arr.findIndex(confere);
       if (i < 0) return;
       arr[i] = { ...arr[i], ...campos };
-      await updateDoc(ref, { tasks: arr });
+      await updateDoc(r, { tasks: arr });
     } catch (e) {
       console.error("Erro ao salvar:", e);
       alert("Não foi possível salvar. Verifique a conexão.");
@@ -350,7 +359,11 @@ function iniciar() {
         cel.dataset.dia = id;
         const topo = document.createElement(id === dayId ? "div" : "a");
         topo.className = "dia-cel-topo";
-        if (id !== dayId) { topo.href = urlDoDia(key, sem); topo.title = "Abrir este dia"; }
+        if (id !== dayId) {
+          topo.href = urlDoDia(key, sem);
+          topo.title = "Abrir este dia";
+          topo.addEventListener("click", e => { e.preventDefault(); location.href = urlDoDia(key, sem, true); });
+        }
         const nome = document.createElement("span");
         nome.textContent = DIAS_CURTOS[key];
         const dt = document.createElement("small");
@@ -358,18 +371,26 @@ function iniciar() {
         topo.append(nome, dt);
         cel.appendChild(topo);
 
-        ordenarLista(tarefasPorDia.get(id) || []).forEach(({ t }) => {
+        ordenarLista(tarefasPorDia.get(id) || []).forEach(({ t, idx }) => {
           const m = document.createElement("div");
           m.className = "dia-mini";
           m.draggable = true;
           const cor = t.color || (COLOR_CYCLE.find(c => c.id === t.colorId) || {}).color || "";
           m.style.borderLeftColor = cor || "#ccc";
-          m.title = [`${t.osNumber || ""} — ${t.clientName || ""}`, t.time, t.team].filter(Boolean).join(" · ");
+          if (cor) m.style.background = cor;
+          const setorNome = (COLOR_CYCLE.find(c => c.id === (t.colorId || "")) || {}).label;
+          m.title = [`${t.osNumber || ""} — ${t.clientName || ""}`, setorNome && t.colorId ? setorNome : null, t.time, t.team, "Clique para trocar o setor (cor)"].filter(Boolean).join(" · ");
           const b = document.createElement("b");
           b.textContent = `${t.time ? t.time + " " : ""}${t.osNumber || ""}`;
           const s = document.createElement("span");
           s.textContent = t.clientName || "";
           m.append(b, s);
+          // Clique cicla o setor/cor, igual ao painel principal e à lista do dia
+          m.addEventListener("click", () => {
+            const atual = COLOR_CYCLE.findIndex(c => c.id === (t.colorId || ""));
+            const prox = COLOR_CYCLE[(atual + 1) % COLOR_CYCLE.length];
+            salvar(idx, t, { colorId: prox.id, color: prox.color }, id);
+          });
           m.addEventListener("dragstart", e => { iniciarArrasto(e, id, t); m.classList.add("arrastando"); });
           m.addEventListener("dragend", () => m.classList.remove("arrastando"));
           cel.appendChild(m);

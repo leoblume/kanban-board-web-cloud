@@ -301,7 +301,7 @@ WEEK_DAYS.forEach(([id]) => {
     header.title = 'Abrir programação deste dia';
     header.setAttribute('role', 'link');
     header.tabIndex = 0;
-    const abrir = () => window.open(`dia.html?dia=w1-${id}`, '_blank');
+    const abrir = () => window.open(`dia.html?dia=w1-${id}&t=${Date.now()}`, '_blank');
     header.addEventListener('click', abrir);
     header.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); } });
 });

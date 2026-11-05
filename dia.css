@@ -94,3 +94,6 @@ body.dia-expandido .dia-alca { display: block; position: absolute; left: 8px; to
 .dia-aviso { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #2b3a42; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 0.85em; z-index: 50; }
 .dia-aviso[hidden] { display: none; }
 @media (max-width: 900px) { .dia-semana-dias { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.dia-mini { color: #1b1b1b; }
+.dia-mini span { color: inherit; opacity: 0.75; }
