@@ -66,3 +66,31 @@ body { font-family: 'Poppins', sans-serif; background: #f4f6f8; margin: 0; color
 #weather-panel { bottom: 0; }   /* na tela do Dia não há agenda fixa embaixo */
 body:not(.weather-is-hidden) .dia-legend { width: auto; right: var(--weather-w); }
 @media (max-width: 1100px) { body:not(.weather-is-hidden) .dia-legend { right: 0; } }
+
+/* ---------- Mostrar mais dias (2 semanas) + arrastar entre dias ---------- */
+.dia-mais { display: flex; justify-content: center; margin: 0 0 12px; }
+.dia-btn-mais { font-family: inherit; font-size: 0.85em; font-weight: 500; padding: 7px 16px; border: 1px solid #0d6efd; color: #0d6efd; background: #fff; border-radius: 20px; cursor: pointer; }
+.dia-btn-mais:hover { background: #e7f1ff; }
+body.dia-expandido .dia-btn-mais { background: #0d6efd; color: #fff; }
+body.dia-expandido .dia-wrapper { max-width: 980px; }
+.dia-grade { margin: 0 0 18px; display: flex; flex-direction: column; gap: 12px; }
+.dia-grade[hidden] { display: none; }
+.dia-semana-titulo { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.04em; color: #6c757d; margin: 0 0 6px; }
+.dia-semana-dias { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.dia-cel { background: #fff; border: 1px solid #e3e6ea; border-radius: 8px; min-height: 90px; padding: 6px; display: flex; flex-direction: column; gap: 5px; }
+.dia-cel.hoje { border-color: #0d6efd; }
+.dia-cel.atual { box-shadow: 0 0 0 2px #0d6efd55; }
+.dia-cel.alvo { background: #e7f1ff; border: 1px dashed #0d6efd; }
+.dia-cel-topo { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.75em; font-weight: 600; color: #2b3a42; text-decoration: none; }
+.dia-cel-topo small { font-weight: 400; color: #6c757d; }
+a.dia-cel-topo:hover { color: #0d6efd; }
+.dia-mini { background: #f8f9fa; border-left: 4px solid #ccc; border-radius: 4px; padding: 3px 5px; font-size: 0.7em; line-height: 1.25; cursor: grab; overflow: hidden; }
+.dia-mini b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dia-mini span { display: block; color: #6c757d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dia-mini.arrastando { opacity: 0.4; }
+.dia-alca { display: none; }
+body.dia-expandido .dia-item { position: relative; padding-left: 26px; }
+body.dia-expandido .dia-alca { display: block; position: absolute; left: 8px; top: 50%; transform: translateY(-50%); cursor: grab; color: #adb5bd; font-size: 16px; letter-spacing: -3px; user-select: none; }
+.dia-aviso { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #2b3a42; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 0.85em; z-index: 50; }
+.dia-aviso[hidden] { display: none; }
+@media (max-width: 900px) { .dia-semana-dias { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

@@ -94,16 +94,5 @@ body.weather-is-hidden #show-weather-button { display: block; }
 .weather-header { margin-left: 8px; }
 
 /* Indicador compacto do consenso entre modelos independentes */
-.wx-consensus { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 0 3px; padding: 5px 7px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--light-gray); font-size: 10px; }
-.wx-consensus b { font-size: 10px; font-weight: 600; }
-.wx-consensus.is-high { color: #18794e; background: #eaf6ef; border-color: #b7dfc8; }
-.wx-consensus.is-medium { color: #8a6200; background: #fff8e5; border-color: #f0dda3; }
-.wx-consensus.is-low { color: #a33a3a; background: #fff0f0; border-color: #efc2c2; }
-.wx-models { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 3px; font-size: 9px; color: var(--text-muted); }
 
 /* Seletor compacto de fonte: permite conferir um modelo por 25 segundos. */
-.wx-model-picker { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; margin: 4px 0 5px; }
-.wx-model-choice { border: 1px solid var(--border-color); border-radius: 12px; padding: 3px 7px; background: #fff; color: var(--text-muted); font: inherit; font-size: 9px; line-height: 1.2; cursor: pointer; }
-.wx-model-choice:hover { border-color: var(--primary-color); color: var(--primary-color); }
-.wx-model-choice.is-active { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
-.wx-model-choice:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }

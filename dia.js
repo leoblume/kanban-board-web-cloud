@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getFirestore, doc, collection, onSnapshot, getDoc, getDocs, updateDoc, setDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, doc, collection, onSnapshot, getDoc, getDocs, updateDoc, setDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyALCIfOdzUrbzs8_ceXXYFwsCeT161OFPw",
@@ -24,17 +24,17 @@ const COLOR_CYCLE = [
 const DIAS = { segunda: "Segunda", terca: "Terça", quarta: "Quarta", quinta: "Quinta", sexta: "Sexta", sabado: "Sábado" };
 const DIA_IDX = { segunda: 0, terca: 1, quarta: 2, quinta: 3, sexta: 4, sabado: 5 };
 
-function dataDoDia(key) {
+function dataDoDia(key, sem = 1) {
   const hoje = new Date();
   const ate = hoje.getDay() === 0 ? 1 : 1 - hoje.getDay();
-  const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + ate + DIA_IDX[key]);
+  const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + ate + DIA_IDX[key] + 7 * (sem - 1));
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 // Dia corrente da semana (domingo mostra a segunda, como o painel semanal do principal)
 const ORDEM_DIAS = Object.keys(DIAS);
 const diaCorrente = () => { const g = new Date().getDay(); return g === 0 ? "segunda" : ORDEM_DIAS[g - 1]; };
-const urlDoDia = key => `dia.html?dia=w1-${key}`;
+const urlDoDia = (key, sem = 1) => `dia.html?dia=w${sem}-${key}`;
 
 // Sem ?dia= na URL (ex.: abriu/atualizou a página direto) → mostra o dia corrente
 let dayId = new URLSearchParams(location.search).get("dia") || "";
@@ -43,6 +43,7 @@ if (!dayId) {
   history.replaceState(null, "", urlDoDia(diaCorrente()));
 }
 const diaKey = dayId.split("-").pop();
+const semana = /^w2-/.test(dayId) ? 2 : 1;
 const nomeDia = DIAS[diaKey];
 const lista = document.getElementById("dia-lista");
 const titulo = document.getElementById("dia-titulo");
@@ -52,20 +53,23 @@ const aba = document.getElementById("gaveta-aba");
 const btnFechar = document.getElementById("gaveta-fechar");
 const buscaOs = document.getElementById("busca-os");
 const listaOs = document.getElementById("lista-os");
+const btnMais = document.getElementById("btn-mais-dias");
+const grade = document.getElementById("dia-grade");
 
-if (!/^w1-/.test(dayId) || !nomeDia) {
+if (!/^w[12]-/.test(dayId) || !nomeDia) {
   titulo.textContent = "Dia não encontrado";
   gaveta.hidden = true;
+  btnMais.hidden = true;
   document.querySelectorAll(".dia-seta").forEach(a => a.classList.add("desativada"));
   lista.innerHTML = '<div class="dia-vazio">Abra esta tela clicando no nome do dia no painel semanal.</div>';
 } else {
-  const data = dataDoDia(diaKey);
+  const data = dataDoDia(diaKey, semana);
   titulo.innerHTML = `${nomeDia} <small>${data}</small>`;
   document.title = `Programação — ${nomeDia} ${data}`;
   const ordem = Object.keys(DIAS);
   const pos = ordem.indexOf(diaKey);
   const ligar = (el, alvo) => {
-    if (alvo) el.href = urlDoDia(alvo);
+    if (alvo) el.href = urlDoDia(alvo, semana);
     else el.classList.add("desativada");
   };
   ligar(document.getElementById("btn-anterior"), ordem[pos - 1]);
@@ -77,12 +81,14 @@ function iniciar() {
   const ref = doc(db, "schedule", dayId);
   let tarefas = [];
   let todasOs = [];
+  let arrastando = false, pendenteLista = false, pendenteGrade = false;
 
   const digitando = () => lista.contains(document.activeElement) && document.activeElement.tagName === "INPUT";
 
   // Ordena por hora (HH:MM); sem hora vai para o fim; empate mantém a ordem original
-  function ordenadas() {
-    return tarefas
+  function ordenadas() { return ordenarLista(tarefas); }
+  function ordenarLista(arr) {
+    return arr
       .map((t, idx) => ({ t, idx }))
       .sort((a, b) => {
         const ha = a.t.time || "", hb = b.t.time || "";
@@ -149,11 +155,19 @@ function iniciar() {
       excluir.textContent = "×";
       excluir.addEventListener("click", () => remover(idx, t));
 
-      card.append(info, campo("Hora", hora), campo("Equipe", equipe), excluir);
+      // Alça de arrasto (aparece ao clicar em "Mostrar mais dias")
+      const alca = document.createElement("span");
+      alca.className = "dia-alca";
+      alca.draggable = true;
+      alca.title = "Arraste para outro dia";
+      alca.textContent = "⋮⋮";
+      alca.addEventListener("dragstart", e => iniciarArrasto(e, dayId, t, card));
+
+      card.append(alca, info, campo("Hora", hora), campo("Equipe", equipe), excluir);
 
       // Clique na tarefa (fora dos campos) cicla o setor/cor, igual ao painel principal
       card.addEventListener("click", e => {
-        if (e.target.closest(".dia-campo, .dia-excluir")) return;
+        if (e.target.closest(".dia-campo, .dia-excluir, .dia-alca")) return;
         const atual = COLOR_CYCLE.findIndex(c => c.id === (t.colorId || ""));
         const prox = COLOR_CYCLE[(atual + 1) % COLOR_CYCLE.length];
         salvar(idx, t, { colorId: prox.id, color: prox.color });
@@ -260,11 +274,157 @@ function iniciar() {
   document.addEventListener("keydown", e => { if (e.key === "Escape" && gavetaAberta()) alternarGaveta(false); });
   buscaOs.addEventListener("input", renderOs);
 
+  // ---------- Mostrar mais dias (2 semanas) + arrastar OS entre dias ----------
+  const DIAS_CURTOS = { segunda: "Seg", terca: "Ter", quarta: "Qua", quinta: "Qui", sexta: "Sex", sabado: "Sáb" };
+  const MIME = "application/x-dia-tarefa";
+  const hojeId = `w1-${diaCorrente()}`;
+  let tarefasPorDia = new Map();
+  let cancelarGrade = null;
+
+  function aviso(msg) {
+    let el = document.getElementById("dia-aviso");
+    if (!el) { el = document.createElement("div"); el.id = "dia-aviso"; el.className = "dia-aviso"; document.body.appendChild(el); }
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(aviso.t);
+    aviso.t = setTimeout(() => { el.hidden = true; }, 3500);
+  }
+
+  function iniciarArrasto(e, origem, t, imagem) {
+    e.dataTransfer.setData(MIME, JSON.stringify({ origem, osNumber: t.osNumber || "", clientName: t.clientName || "" }));
+    e.dataTransfer.setData("text/plain", `${t.osNumber || ""} ${t.clientName || ""}`.trim());
+    e.dataTransfer.effectAllowed = "move";
+    if (imagem) e.dataTransfer.setDragImage(imagem, 20, 20);
+    arrastando = true;
+  }
+
+  function fimDoArrasto() {
+    arrastando = false;
+    grade.querySelectorAll(".dia-cel.alvo").forEach(c => c.classList.remove("alvo"));
+    if (pendenteLista) { pendenteLista = false; if (!digitando()) render(); }
+    if (pendenteGrade) { pendenteGrade = false; renderGrade(); }
+  }
+  document.addEventListener("dragend", fimDoArrasto);
+
+  // Move a tarefa (com hora, equipe e cor) de um dia para outro, de forma atômica
+  async function mover(origem, destino, t) {
+    if (!origem || !destino || origem === destino) return;
+    const confere = x => x && x.osNumber === t.osNumber && x.clientName === t.clientName;
+    const rO = doc(db, "schedule", origem), rD = doc(db, "schedule", destino);
+    try {
+      const resultado = await runTransaction(db, async tx => {
+        const [sO, sD] = await Promise.all([tx.get(rO), tx.get(rD)]);
+        const arrO = sO.exists() ? [...(sO.data().tasks || [])] : [];
+        const arrD = sD.exists() ? [...(sD.data().tasks || [])] : [];
+        const i = arrO.findIndex(confere);
+        if (i < 0) return "sumiu";
+        if (arrD.some(confere)) return "duplicada";
+        const [item] = arrO.splice(i, 1);
+        arrD.push(item);
+        tx.set(rO, { tasks: arrO }, { merge: true });
+        tx.set(rD, { tasks: arrD }, { merge: true });
+        return "ok";
+      });
+      if (resultado === "duplicada") aviso("Esta OS já está no dia de destino.");
+      else if (resultado === "sumiu") aviso("A tarefa não está mais no dia de origem.");
+    } catch (e) {
+      console.error("Erro ao mover:", e);
+      aviso("Não foi possível mover. Verifique a conexão.");
+    }
+  }
+
+  function renderGrade() {
+    if (arrastando) { pendenteGrade = true; return; }
+    grade.innerHTML = "";
+    [1, 2].forEach(sem => {
+      const bloco = document.createElement("div");
+      const tit = document.createElement("div");
+      tit.className = "dia-semana-titulo";
+      tit.textContent = `${sem === 1 ? "Esta semana" : "Próxima semana"} · ${dataDoDia("segunda", sem)} a ${dataDoDia("sabado", sem)}`;
+      const dias = document.createElement("div");
+      dias.className = "dia-semana-dias";
+      ORDEM_DIAS.forEach(key => {
+        const id = `w${sem}-${key}`;
+        const cel = document.createElement("div");
+        cel.className = "dia-cel" + (id === hojeId ? " hoje" : "") + (id === dayId ? " atual" : "");
+        cel.dataset.dia = id;
+        const topo = document.createElement(id === dayId ? "div" : "a");
+        topo.className = "dia-cel-topo";
+        if (id !== dayId) { topo.href = urlDoDia(key, sem); topo.title = "Abrir este dia"; }
+        const nome = document.createElement("span");
+        nome.textContent = DIAS_CURTOS[key];
+        const dt = document.createElement("small");
+        dt.textContent = dataDoDia(key, sem);
+        topo.append(nome, dt);
+        cel.appendChild(topo);
+
+        ordenarLista(tarefasPorDia.get(id) || []).forEach(({ t }) => {
+          const m = document.createElement("div");
+          m.className = "dia-mini";
+          m.draggable = true;
+          const cor = t.color || (COLOR_CYCLE.find(c => c.id === t.colorId) || {}).color || "";
+          m.style.borderLeftColor = cor || "#ccc";
+          m.title = [`${t.osNumber || ""} — ${t.clientName || ""}`, t.time, t.team].filter(Boolean).join(" · ");
+          const b = document.createElement("b");
+          b.textContent = `${t.time ? t.time + " " : ""}${t.osNumber || ""}`;
+          const s = document.createElement("span");
+          s.textContent = t.clientName || "";
+          m.append(b, s);
+          m.addEventListener("dragstart", e => { iniciarArrasto(e, id, t); m.classList.add("arrastando"); });
+          m.addEventListener("dragend", () => m.classList.remove("arrastando"));
+          cel.appendChild(m);
+        });
+        dias.appendChild(cel);
+      });
+      bloco.append(tit, dias);
+      grade.appendChild(bloco);
+    });
+  }
+
+  const arrastoValido = e => Array.from(e.dataTransfer.types || []).includes(MIME);
+  grade.addEventListener("dragover", e => {
+    const cel = e.target.closest(".dia-cel");
+    if (!cel || !arrastoValido(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    cel.classList.add("alvo");
+  });
+  grade.addEventListener("dragleave", e => {
+    const cel = e.target.closest(".dia-cel");
+    if (cel && !cel.contains(e.relatedTarget)) cel.classList.remove("alvo");
+  });
+  grade.addEventListener("drop", async e => {
+    const cel = e.target.closest(".dia-cel");
+    if (!cel || !arrastoValido(e)) return;
+    e.preventDefault();
+    cel.classList.remove("alvo");
+    let p;
+    try { p = JSON.parse(e.dataTransfer.getData(MIME)); } catch { return; }
+    await mover(p.origem, cel.dataset.dia, p);
+  });
+
+  btnMais.addEventListener("click", () => {
+    const abrir = grade.hidden;
+    grade.hidden = !abrir;
+    document.body.classList.toggle("dia-expandido", abrir);
+    btnMais.textContent = abrir ? "Mostrar menos dias" : "Mostrar mais dias";
+    btnMais.setAttribute("aria-expanded", String(abrir));
+    if (abrir) {
+      cancelarGrade = onSnapshot(collection(db, "schedule"), snap => {
+        tarefasPorDia = new Map();
+        snap.forEach(d => { if (/^w[12]-/.test(d.id)) tarefasPorDia.set(d.id, d.data().tasks || []); });
+        renderGrade();
+      }, err => { console.error(err); aviso("Erro ao carregar os dias."); });
+    } else if (cancelarGrade) {
+      cancelarGrade(); cancelarGrade = null;
+    }
+  });
+
   // ---------- Tempo real ----------
   onSnapshot(ref, snap => {
     tarefas = snap.exists() ? (snap.data().tasks || []) : [];
     if (gavetaAberta()) renderOs();
-    if (digitando()) return; // renderiza ao sair do campo
+    if (digitando() || arrastando) { pendenteLista = true; return; } // renderiza ao sair do campo / fim do arrasto
     render();
   }, err => {
     console.error(err);
@@ -285,7 +445,7 @@ function iniciar() {
 const VOLTAR_HOJE_MS = 25 * 1000;     // ajuste aqui (20–30 s)
 let ultimaAtividade = Date.now();
 let dataAoCarregar = new Date().toDateString();
-["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll"].forEach(ev =>
+["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll", "dragstart", "dragover"].forEach(ev =>
   document.addEventListener(ev, () => { ultimaAtividade = Date.now(); }, { passive: true, capture: true }));
 
 const ocupado = () => {
@@ -298,7 +458,7 @@ function verificarDiaCorrente() {
   if (ocupado()) return;
   const hoje = diaCorrente();
   const virou = new Date().toDateString() !== dataAoCarregar;
-  const emOutroDia = diaKey !== hoje;
+  const emOutroDia = dayId !== `w1-${hoje}`;
   const ocioso = Date.now() - ultimaAtividade >= VOLTAR_HOJE_MS;
   if (virou || (emOutroDia && ocioso)) location.replace(urlDoDia(hoje));
 }

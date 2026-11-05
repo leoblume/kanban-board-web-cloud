@@ -17,8 +17,6 @@ if (!Array.isArray(cities) || !cities.length) cities = DEFAULT_CITIES.slice();
 let active = Math.min(Math.max(parseInt(localStorage.getItem('weatherActive') || '0', 10) || 0, 0), cities.length - 1);
 const cache = new Map();           // "lat,lon" -> { data, at }
 let errorMsg = null, loading = false;
-let selectedModel = null, modelViewUntil = 0;
-const MODEL_VIEW_MS = 25 * 1000;
 const keyOf = c => `${c.lat},${c.lon}`;
 const saveCities = () => { localStorage.setItem('weatherCities', JSON.stringify(cities)); localStorage.setItem('weatherActive', String(active)); };
 
@@ -100,11 +98,7 @@ function render() {
     return;
   }
 
-  const baseData = entry.data;
-  const selected = selectedModel && Date.now() < modelViewUntil
-    ? (baseData.modelForecasts || []).find(m => m.id === selectedModel) : null;
-  if (!selected && selectedModel) { selectedModel = null; modelViewUntil = 0; }
-  const d = selected ? selected.data : baseData;
+  const d = entry.data;
   const cur = d.current, b = rainBanner(d);
   bodyEl.innerHTML = `
     <div class="wx-now">
@@ -133,17 +127,7 @@ function render() {
     </div>`;
 
   const time = new Date(entry.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const c = baseData.consensus;
-  const confidenceLabel = c ? ({ alta: 'Alta', moderada: 'Moderada', baixa: 'Baixa', limitada: 'Limitada' }[c.confidence] || 'Parcial') : '—';
-  const confidenceClass = c?.confidence === 'alta' ? 'is-high' : c?.confidence === 'moderada' ? 'is-medium' : 'is-low';
-  const modelNames = c ? c.models.map(m => `${m.ok ? '✓' : '×'} ${m.label}`).join(' · ') : 'Open-Meteo';
-  const modelButtons = c ? `<div class="wx-model-picker" aria-label="Selecionar previsão meteorológica">
-    <button type="button" class="wx-model-choice${!selected ? ' is-active' : ''}" data-model="consensus">Consenso</button>
-    ${(baseData.modelForecasts || []).map(m => `<button type="button" class="wx-model-choice${selected?.id === m.id ? ' is-active' : ''}" data-model="${esc(m.id)}">${esc(m.label)}</button>`).join('')}
-  </div>` : '';
-  const remaining = selected ? Math.max(0, Math.ceil((modelViewUntil - Date.now()) / 1000)) : 0;
-  const viewLabel = selected ? `Exibindo ${esc(selected.label)} · volta ao consenso em ${remaining}s` : `Clima Consenso ${confidenceLabel}`;
-  footerEl.innerHTML = `${c ? `<div class="wx-consensus ${confidenceClass}"><span>${viewLabel}</span><b>${selected ? 'Individual' : `${c.count}/${c.total} modelos`}</b></div>${modelButtons}<div class="wx-models" title="${esc(modelNames)}">${esc(modelNames)}</div>` : ''}<div>${loading ? 'Atualizando…' : `Atualizado às ${time}`} · ${c ? 'Open-Meteo · ECMWF / GFS / ICON' : 'Fonte: Open-Meteo'}</div>${d.note ? `<div class="wx-note">${esc(d.note)}</div>` : ''}`;
+  footerEl.innerHTML = `<div>${loading ? 'Atualizando…' : `Atualizado às ${time}`} · Fonte: Open-Meteo</div>${d.note ? `<div class="wx-note">${esc(d.note)}</div>` : ''}`;
 }
 
 // ---------- eventos ----------
@@ -155,22 +139,13 @@ tabsEl.addEventListener('click', e => {
     cities.splice(i, 1);
     if (active >= cities.length) active = cities.length - 1;
     else if (i < active) active--;
-    selectedModel = null; modelViewUntil = 0;
     saveCities(); loadCity(cities[active]); return;
   }
   const tab = e.target.closest('.wx-tab');
-  if (tab) { active = Number(tab.dataset.i); selectedModel = null; modelViewUntil = 0; saveCities(); errorMsg = null; loadCity(cities[active]); }
+  if (tab) { active = Number(tab.dataset.i); saveCities(); errorMsg = null; loadCity(cities[active]); }
 });
 
 bodyEl.addEventListener('click', e => { if (e.target.id === 'wx-retry') loadCity(cities[active], true); });
-footerEl.addEventListener('click', e => {
-  const button = e.target.closest('[data-model]');
-  if (!button) return;
-  const id = button.dataset.model;
-  if (id === 'consensus') { selectedModel = null; modelViewUntil = 0; }
-  else { selectedModel = id; modelViewUntil = Date.now() + MODEL_VIEW_MS; }
-  render();
-});
 $('weather-refresh').addEventListener('click', () => loadCity(cities[active], true));
 
 $('weather-add-city').addEventListener('click', () => {
@@ -205,7 +180,7 @@ searchResults.addEventListener('click', e => {
   if (!r) return;
   const idx = cities.findIndex(c => Math.abs(c.lat - r.lat) < 0.02 && Math.abs(c.lon - r.lon) < 0.02);
   if (idx >= 0) active = idx; else { cities.push({ name: r.name, sub: r.sub, lat: r.lat, lon: r.lon }); active = cities.length - 1; }
-  selectedModel = null; modelViewUntil = 0;
+ 
   saveCities();
   searchBox.hidden = true; searchInput.value = ''; searchResults.innerHTML = '';
   errorMsg = null; loadCity(cities[active]);
@@ -235,10 +210,7 @@ if (sched) {
 
 // ---------- atualização automática ----------
 setInterval(() => loadCity(cities[active], true), REFRESH_MS);   // a cada 30 min
-setInterval(() => {
-  if (selectedModel && Date.now() >= modelViewUntil) { selectedModel = null; modelViewUntil = 0; }
-  render();
-}, 1000); // atualiza contador de 25 s e recalcula a previsão de chuva
+setInterval(render, 1000);   // recalcula a previsão de chuva com a hora atual
 document.addEventListener('visibilitychange', () => {            // abas em segundo plano atrasam timers
   if (document.visibilityState !== 'visible') return;
   const c = cache.get(keyOf(cities[active]));
